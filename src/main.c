@@ -36,9 +36,17 @@ void main(void)
 
 	while (1)
 	{
-		delay_ms(1000); //test delay and systemclock
-		send(testvalue);
-		testvalue ^= 1;
+		delay_ms(100); //test delay and systemclock
+
+		if (recive_count() > 100)
+			send('!');
+
+		uint8_t rx = 0;
+		if (recive_byte(&rx))
+			send(rx);
+
+		//send(testvalue);
+		//testvalue ^= 1;
 	}
 }
 #endif

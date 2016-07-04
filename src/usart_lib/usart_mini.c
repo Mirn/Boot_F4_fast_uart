@@ -13,11 +13,13 @@
 #endif
 
 #ifdef STM32F4XX
+#include "misc.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_rcc.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_usart.h"
 
+#include "misc_inline.h"
 #include "stm32f4xx_rcc_inline.h"
 #include "stm32f4xx_gpio_inline.h"
 #include "stm32f4xx_usart_inline.h"
@@ -26,6 +28,10 @@
 #include "usart_mini.h"
 
 #define USART_BOD 500000
+
+uint8_t rx_buffer[0x10000] = {0};
+uint32_t rx_pos_write = 0;
+uint32_t rx_pos_read  = 0;
 
 void usart_init()
 {
@@ -105,22 +111,40 @@ void usart_init()
     };
 
     USART_Init_inline(USART1, &USART_InitStructure);
+
+    NVIC_InitTypeDef NVIC_InitStructure = {
+    		.NVIC_IRQChannel = USART1_IRQn,
+    		.NVIC_IRQChannelPreemptionPriority = 0,
+    		.NVIC_IRQChannelSubPriority = 0,
+    		.NVIC_IRQChannelCmd = ENABLE,
+    };
+    NVIC_Init_inline(&NVIC_InitStructure);
+    USART_ITConfig_inline(USART1, USART_IT_RXNE, ENABLE);
+
     USART_Cmd_inline(USART1, ENABLE);
 #endif
 }
 
-bool wait(uint8_t *rx_data)
+void USART1_IRQHandler(void)
 {
-	uint16_t timeout = 0xFFFF;
-	while ((timeout--) && (!recive_ready()));
-
-	if (recive_ready())
+	if (USART_GetITStatus_inline(USART1, USART_IT_RXNE) != RESET)
 	{
-		*rx_data = recive();
-		return true;
+		rx_buffer[rx_pos_write % sizeof(rx_buffer)] = USART_ReceiveData_inline(USART1);
+		rx_pos_write++;
 	}
-	else
-		return false;
+}
+
+bool recive_byte(uint8_t *rx_data)
+{
+	if (rx_pos_read == rx_pos_write) return false;
+	*rx_data = rx_buffer[rx_pos_read % sizeof(rx_buffer)];
+	rx_pos_read++;
+	return true;
+}
+
+uint32_t recive_count()
+{
+	return rx_pos_write - rx_pos_read;
 }
 
 void send(uint8_t tx_data)

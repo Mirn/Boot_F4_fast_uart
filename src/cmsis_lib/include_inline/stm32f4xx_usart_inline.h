@@ -215,4 +215,236 @@ static inline void USART_Init_inline(USART_TypeDef* USARTx, USART_InitTypeDef* U
   USARTx->BRR = (uint16_t)tmpreg;
 }
 
+/** @defgroup USART_Group9 Interrupts and flags management functions
+ *  @brief   Interrupts and flags management functions
+ *
+@verbatim
+ ===============================================================================
+                   Interrupts and flags management functions
+ ===============================================================================
+
+  This subsection provides a set of functions allowing to configure the USART
+  Interrupts sources, DMA channels requests and check or clear the flags or
+  pending bits status.
+  The user should identify which mode will be used in his application to manage
+  the communication: Polling mode, Interrupt mode or DMA mode.
+
+  Polling Mode
+  =============
+  In Polling Mode, the SPI communication can be managed by 10 flags:
+     1. USART_FLAG_TXE : to indicate the status of the transmit buffer register
+     2. USART_FLAG_RXNE : to indicate the status of the receive buffer register
+     3. USART_FLAG_TC : to indicate the status of the transmit operation
+     4. USART_FLAG_IDLE : to indicate the status of the Idle Line
+     5. USART_FLAG_CTS : to indicate the status of the nCTS input
+     6. USART_FLAG_LBD : to indicate the status of the LIN break detection
+     7. USART_FLAG_NE : to indicate if a noise error occur
+     8. USART_FLAG_FE : to indicate if a frame error occur
+     9. USART_FLAG_PE : to indicate if a parity error occur
+     10. USART_FLAG_ORE : to indicate if an Overrun error occur
+
+  In this Mode it is advised to use the following functions:
+      - FlagStatus USART_GetFlagStatus(USART_TypeDef* USARTx, uint16_t USART_FLAG);
+      - void USART_ClearFlag(USART_TypeDef* USARTx, uint16_t USART_FLAG);
+
+  Interrupt Mode
+  ===============
+  In Interrupt Mode, the USART communication can be managed by 8 interrupt sources
+  and 10 pending bits:
+
+  Pending Bits:
+  -------------
+     1. USART_IT_TXE : to indicate the status of the transmit buffer register
+     2. USART_IT_RXNE : to indicate the status of the receive buffer register
+     3. USART_IT_TC : to indicate the status of the transmit operation
+     4. USART_IT_IDLE : to indicate the status of the Idle Line
+     5. USART_IT_CTS : to indicate the status of the nCTS input
+     6. USART_IT_LBD : to indicate the status of the LIN break detection
+     7. USART_IT_NE : to indicate if a noise error occur
+     8. USART_IT_FE : to indicate if a frame error occur
+     9. USART_IT_PE : to indicate if a parity error occur
+     10. USART_IT_ORE : to indicate if an Overrun error occur
+
+  Interrupt Source:
+  -----------------
+     1. USART_IT_TXE : specifies the interrupt source for the Tx buffer empty
+                       interrupt.
+     2. USART_IT_RXNE : specifies the interrupt source for the Rx buffer not
+                        empty interrupt.
+     3. USART_IT_TC : specifies the interrupt source for the Transmit complete
+                       interrupt.
+     4. USART_IT_IDLE : specifies the interrupt source for the Idle Line interrupt.
+     5. USART_IT_CTS : specifies the interrupt source for the CTS interrupt.
+     6. USART_IT_LBD : specifies the interrupt source for the LIN break detection
+                       interrupt.
+     7. USART_IT_PE : specifies the interrupt source for the parity error interrupt.
+     8. USART_IT_ERR :  specifies the interrupt source for the errors interrupt.
+
+@note Some parameters are coded in order to use them as interrupt source or as pending bits.
+
+  In this Mode it is advised to use the following functions:
+     - void USART_ITConfig(USART_TypeDef* USARTx, uint16_t USART_IT, FunctionalState NewState);
+     - ITStatus USART_GetITStatus(USART_TypeDef* USARTx, uint16_t USART_IT);
+     - void USART_ClearITPendingBit(USART_TypeDef* USARTx, uint16_t USART_IT);
+
+  DMA Mode
+  ========
+  In DMA Mode, the USART communication can be managed by 2 DMA Channel requests:
+     1. USART_DMAReq_Tx: specifies the Tx buffer DMA transfer request
+     2. USART_DMAReq_Rx: specifies the Rx buffer DMA transfer request
+
+  In this Mode it is advised to use the following function:
+     - void USART_DMACmd(USART_TypeDef* USARTx, uint16_t USART_DMAReq, FunctionalState NewState);
+
+@endverbatim
+  * @{
+  */
+
+/**
+  * @brief  Enables or disables the specified USART interrupts.
+  * @param  USARTx: where x can be 1, 2, 3, 4, 5 or 6 to select the USART or
+  *         UART peripheral.
+  * @param  USART_IT: specifies the USART interrupt sources to be enabled or disabled.
+  *          This parameter can be one of the following values:
+  *            @arg USART_IT_CTS:  CTS change interrupt
+  *            @arg USART_IT_LBD:  LIN Break detection interrupt
+  *            @arg USART_IT_TXE:  Transmit Data Register empty interrupt
+  *            @arg USART_IT_TC:   Transmission complete interrupt
+  *            @arg USART_IT_RXNE: Receive Data register not empty interrupt
+  *            @arg USART_IT_IDLE: Idle line detection interrupt
+  *            @arg USART_IT_PE:   Parity Error interrupt
+  *            @arg USART_IT_ERR:  Error interrupt(Frame error, noise error, overrun error)
+  * @param  NewState: new state of the specified USARTx interrupts.
+  *          This parameter can be: ENABLE or DISABLE.
+  * @retval None
+  */
+static inline void USART_ITConfig_inline(USART_TypeDef* USARTx, uint16_t USART_IT, FunctionalState NewState)
+{
+  uint32_t usartreg = 0x00, itpos = 0x00, itmask = 0x00;
+  uint32_t usartxbase = 0x00;
+  /* Check the parameters */
+  assert_param(IS_USART_ALL_PERIPH(USARTx));
+  assert_param(IS_USART_CONFIG_IT(USART_IT));
+  assert_param(IS_FUNCTIONAL_STATE(NewState));
+
+  /* The CTS interrupt is not available for UART4 and UART5 */
+  if (USART_IT == USART_IT_CTS)
+  {
+    assert_param(IS_USART_1236_PERIPH(USARTx));
+  }
+
+  usartxbase = (uint32_t)USARTx;
+
+  /* Get the USART register index */
+  usartreg = (((uint8_t)USART_IT) >> 0x05);
+
+  /* Get the interrupt position */
+  itpos = USART_IT & IT_MASK;
+  itmask = (((uint32_t)0x01) << itpos);
+
+  if (usartreg == 0x01) /* The IT is in CR1 register */
+  {
+    usartxbase += 0x0C;
+  }
+  else if (usartreg == 0x02) /* The IT is in CR2 register */
+  {
+    usartxbase += 0x10;
+  }
+  else /* The IT is in CR3 register */
+  {
+    usartxbase += 0x14;
+  }
+  if (NewState != DISABLE)
+  {
+    *(__IO uint32_t*)usartxbase  |= itmask;
+  }
+  else
+  {
+    *(__IO uint32_t*)usartxbase &= ~itmask;
+  }
+}
+
+/**
+  * @brief  Checks whether the specified USART interrupt has occurred or not.
+  * @param  USARTx: where x can be 1, 2, 3, 4, 5 or 6 to select the USART or
+  *         UART peripheral.
+  * @param  USART_IT: specifies the USART interrupt source to check.
+  *          This parameter can be one of the following values:
+  *            @arg USART_IT_CTS:  CTS change interrupt (not available for UART4 and UART5)
+  *            @arg USART_IT_LBD:  LIN Break detection interrupt
+  *            @arg USART_IT_TXE:  Transmit Data Register empty interrupt
+  *            @arg USART_IT_TC:   Transmission complete interrupt
+  *            @arg USART_IT_RXNE: Receive Data register not empty interrupt
+  *            @arg USART_IT_IDLE: Idle line detection interrupt
+  *            @arg USART_IT_ORE_RX : OverRun Error interrupt if the RXNEIE bit is set
+  *            @arg USART_IT_ORE_ER : OverRun Error interrupt if the EIE bit is set
+  *            @arg USART_IT_NE:   Noise Error interrupt
+  *            @arg USART_IT_FE:   Framing Error interrupt
+  *            @arg USART_IT_PE:   Parity Error interrupt
+  * @retval The new state of USART_IT (SET or RESET).
+  */
+static inline ITStatus USART_GetITStatus_inline(USART_TypeDef* USARTx, uint16_t USART_IT)
+{
+  uint32_t bitpos = 0x00, itmask = 0x00, usartreg = 0x00;
+  ITStatus bitstatus = RESET;
+  /* Check the parameters */
+  assert_param(IS_USART_ALL_PERIPH(USARTx));
+  assert_param(IS_USART_GET_IT(USART_IT));
+
+  /* The CTS interrupt is not available for UART4 and UART5 */
+  if (USART_IT == USART_IT_CTS)
+  {
+    assert_param(IS_USART_1236_PERIPH(USARTx));
+  }
+
+  /* Get the USART register index */
+  usartreg = (((uint8_t)USART_IT) >> 0x05);
+  /* Get the interrupt position */
+  itmask = USART_IT & IT_MASK;
+  itmask = (uint32_t)0x01 << itmask;
+
+  if (usartreg == 0x01) /* The IT  is in CR1 register */
+  {
+    itmask &= USARTx->CR1;
+  }
+  else if (usartreg == 0x02) /* The IT  is in CR2 register */
+  {
+    itmask &= USARTx->CR2;
+  }
+  else /* The IT  is in CR3 register */
+  {
+    itmask &= USARTx->CR3;
+  }
+
+  bitpos = USART_IT >> 0x08;
+  bitpos = (uint32_t)0x01 << bitpos;
+  bitpos &= USARTx->SR;
+  if ((itmask != (uint16_t)RESET)&&(bitpos != (uint16_t)RESET))
+  {
+    bitstatus = SET;
+  }
+  else
+  {
+    bitstatus = RESET;
+  }
+
+  return bitstatus;
+}
+
+/**
+  * @brief  Returns the most recent received data by the USARTx peripheral.
+  * @param  USARTx: where x can be 1, 2, 3, 4, 5 or 6 to select the USART or
+  *         UART peripheral.
+  * @retval The received data.
+  */
+static inline uint16_t USART_ReceiveData_inline(USART_TypeDef* USARTx)
+{
+  /* Check the parameters */
+  assert_param(IS_USART_ALL_PERIPH(USARTx));
+
+  /* Receive Data */
+  return (uint16_t)(USARTx->DR & (uint16_t)0x01FF);
+}
+
+
 #endif /* STM32F4XX_USART_INLINE_H_ */
