@@ -1,8 +1,25 @@
 #include "stm32kiss.h"
 #include "usart_mini.h"
+#include "packet_receiver.h"
 
-#define SIMPLE_TEST
-#ifndef SIMPLE_TEST
+//#define SIMPLE_TEST
+//#define TEST_PRINTF
+
+#if !defined(SIMPLE_TEST) && !defined(TEST_PRINTF)
+void main(void)
+{
+	ticks_init();
+	usart_init();
+	recive_packets_init();
+
+	while (1)
+	{
+		recive_packets();
+	}
+}
+#endif
+
+#ifdef TEST_PRINTF
 
 #pragma GCC diagnostic ignored "-Wformat" //for simple printf without format %l modificator
 
@@ -23,14 +40,11 @@ void main(void)
 		printf("testvalue\t%08X\r\n", testvalue);
 	}
 }
+#endif
 
-#else
-
-volatile uint8_t testvalue = '.'; //test data section initialization
-
+#ifdef SIMPLE_TEST
 void main(void)
 {
-	//SystemCoreClockUpdate();
 	usart_init();
 	ticks_init();
 
@@ -44,9 +58,6 @@ void main(void)
 		uint8_t rx = 0;
 		if (recive_byte(&rx))
 			send(rx);
-
-		//send(testvalue);
-		//testvalue ^= 1;
 	}
 }
 #endif

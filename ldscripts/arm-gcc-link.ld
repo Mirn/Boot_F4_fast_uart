@@ -73,6 +73,7 @@ SECTIONS
         . = ALIGN(4); 
         _ebss = . ; 
     } > ram
+    _end_noinit = .;
     
     /* stack section */
     .co_stack (NOLOAD):

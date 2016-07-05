@@ -30,8 +30,8 @@
 #define USART_BOD 500000
 
 uint8_t rx_buffer[0x10000] = {0};
-uint32_t rx_pos_write = 0;
-uint32_t rx_pos_read  = 0;
+volatile uint32_t rx_pos_write = 0;
+volatile uint32_t rx_pos_read  = 0;
 
 void usart_init()
 {
@@ -145,6 +145,11 @@ bool recive_byte(uint8_t *rx_data)
 uint32_t recive_count()
 {
 	return rx_pos_write - rx_pos_read;
+}
+
+uint32_t recive_free()
+{
+	return sizeof(rx_buffer) - recive_count();
 }
 
 void send(uint8_t tx_data)
