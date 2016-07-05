@@ -56,6 +56,8 @@ typedef struct
 
 #define UNUSED __attribute__ ((unused))
 
+#pragma GCC diagnostic ignored "-Wformat"
+
 #include "stm32kiss_adc.h"
 #include "stm32kiss_dac.h"
 #include "stm32kiss_gpio.h"

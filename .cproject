@@ -82,10 +82,7 @@
 									<listOptionValue builtIn="false" value="../src/kiss/inc"/>
 									<listOptionValue builtIn="false" value="../src/usart_lib"/>
 									<listOptionValue builtIn="false" value="../src/cmsis_lib/include_inline"/>
-<<<<<<< HEAD
 									<listOptionValue builtIn="false" value="../src"/>
-=======
->>>>>>> origin/master
 								</option>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.defs.68349364" name="Defined symbols (-D)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.defs" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="STM32F405RG"/>

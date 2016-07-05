@@ -152,15 +152,16 @@ uint32_t recive_free()
 	return sizeof(rx_buffer) - recive_count();
 }
 
-void send(uint8_t tx_data)
+void send(const uint8_t tx_data)
 {
 	while ((USART1->SR & USART_FLAG_TC) == RESET);
     USART1->DR = tx_data;
 }
 
-void __send_block(uint8_t *data, uint32_t size)
+void __send_block(const uint8_t *data, const uint32_t size)
 {
-	while (size--)
+	uint32_t cnt = size;
+	while (cnt--)
 		send(*(data++));
 }
 
