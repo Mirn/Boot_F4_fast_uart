@@ -9,6 +9,9 @@
 #include "usart_mini.h"
 #include "packet_receiver.h"
 
+#include "stm32f4xx_rcc_inline.h"
+#include "stm32f4xx_crc_inline.h"
+
 #define PACKET_START_SIGN 0x817EA345
 #define TIMEOUT_TURNS 1000000
 
@@ -31,6 +34,14 @@ uint8_t  packet_code_n = 0;
 uint16_t packet_size = 0;
 uint8_t *packet_body = NULL;
 uint32_t packet_crc = 0;
+
+void recive_packets_init()
+{
+	packet_timeout = TIMEOUT_TURNS;
+	recive_check = recive_check_start;
+	packet_cnt = 0;
+	RCC_AHB1PeriphClockCmd_inline(RCC_AHB1Periph_CRC, ENABLE);
+}
 
 static bool ERROR_RESET(const char *err_msg)
 {
@@ -73,7 +84,7 @@ static bool recive_check_start()
 	if (packet_start == PACKET_START_SIGN)
 	{
 		recive_check = recive_check_info;
-		send_str("packet_start_sign OK\r\n");
+		send_str("packet_start_sign OK\r");
 	}
 	return true;
 }
@@ -96,6 +107,7 @@ static bool recive_check_info()
 	if (packet_size > PACKET_MAX_SIZE)
 		return ERROR_RESET("recive_check_info: packet_size > PACKET_MAX_SIZE");
 
+	send_str("packet_check_info OK\r");
 	packet_body = &packet_buf[4];
 	return true;
 }
@@ -105,6 +117,7 @@ static bool recive_check_body()
 	if (!recive_n_bytes(packet_size))
 		return false;
 
+	send_str("recive_check_body OK\r");
 	recive_check = recive_check_crc;
 	return true;
 }
@@ -120,18 +133,18 @@ static bool recive_check_crc()
 			(((uint32_t)packet_buf[packet_cnt - 2]) << 16) |
 			(((uint32_t)packet_buf[packet_cnt - 1]) << 24);
 
+	CRC_ResetDR_inline();
+	uint32_t real_crc = CRC_CalcBlockCRC_inline((uint32_t*)packet_buf, (packet_cnt-4)/4);
+
+	printf("real_crc  \t%08X\r", real_crc);
+	printf("packet_crc\t%08X\r", packet_crc);
+
+	send_str("recive_check_crc OK\r");
 	recive_packets_init();
 	return true;
 }
 
 ///////////////////////////////////////////////////////
-
-void recive_packets_init()
-{
-	packet_timeout = TIMEOUT_TURNS;
-	recive_check = recive_check_start;
-	packet_cnt = 0;
-}
 
 void recive_packets()
 {

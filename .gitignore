@@ -4,6 +4,7 @@
 *.o
 *.d
 *.obj
+*.dcu
 
 # Precompiled Headers
 *.gch
@@ -15,6 +16,7 @@
 *.map
 
 *.mk
+*.~*
 makefile
 
 # Thumbnails
