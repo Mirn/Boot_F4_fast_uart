@@ -12,6 +12,14 @@
 #include "stm32f4xx_rcc_inline.h"
 #include "stm32f4xx_crc_inline.h"
 
+//#define LOG_DETAILS
+
+#ifdef LOG_DETAILS
+#define send_status(msg) send_str(msg)
+#else
+#define send_status(msg)
+#endif
+
 #define PACKET_START_SIGN 0x817EA345
 #define TIMEOUT_TURNS 1000000
 
@@ -35,6 +43,15 @@ uint16_t packet_size = 0;
 uint8_t *packet_body = NULL;
 uint32_t packet_crc = 0;
 
+uint32_t stat_normals = 0;
+
+uint32_t stat_error_timeout = 0;
+uint32_t stat_error_overfull = 0;
+uint32_t stat_error_start = 0;
+uint32_t stat_error_code = 0;
+uint32_t stat_error_size = 0;
+uint32_t stat_error_crc = 0;
+
 void recive_packets_init()
 {
 	packet_timeout = TIMEOUT_TURNS;
@@ -43,8 +60,9 @@ void recive_packets_init()
 	RCC_AHB1PeriphClockCmd_inline(RCC_AHB1Periph_CRC, ENABLE);
 }
 
-static bool ERROR_RESET(const char *err_msg)
+static bool ERROR_RESET(const char *err_msg, uint32_t *stat_inc)
 {
+	(*stat_inc)++;
 	send_str("ERROR: ");
 	send_str(err_msg);
 	send('\r');
@@ -67,7 +85,7 @@ static bool recive_n_bytes(uint32_t cnt)
 	};
 
 	if (packet_cnt >= sizeof(packet_buf))
-		return ERROR_RESET("packet_buf overfull");
+		return ERROR_RESET("packet_buf overfull", &stat_error_overfull);
 
 	return true;
 }
@@ -83,9 +101,13 @@ static bool recive_check_start()
 	packet_start = (packet_start << 8) | ((uint32_t)rx);
 	if (packet_start == PACKET_START_SIGN)
 	{
+		send_status("packet_start_sign OK\r");
 		recive_check = recive_check_info;
-		send_str("packet_start_sign OK\r");
+		stat_error_start -= 3;
 	}
+	else
+		stat_error_start++;
+
 	return true;
 }
 
@@ -93,22 +115,23 @@ static bool recive_check_info()
 {
 	if (!recive_n_bytes(4))
 		return false;
-	recive_check = recive_check_body;
 
 	packet_code   = packet_buf[0] ^ 0x00;
 	packet_code_n = packet_buf[1] ^ 0xFF;
 
 	if (packet_code != packet_code_n)
-		return ERROR_RESET("recive_check_info: packet_code != ~packet_code_n");
+		return ERROR_RESET("recive_check_info: packet_code != ~packet_code_n", &stat_error_code);
 
 	packet_size = (((uint16_t)packet_buf[2]) << 0) |
 				  (((uint16_t)packet_buf[3]) << 8);
 
 	if (packet_size > PACKET_MAX_SIZE)
-		return ERROR_RESET("recive_check_info: packet_size > PACKET_MAX_SIZE");
+		return ERROR_RESET("recive_check_info: packet_size > PACKET_MAX_SIZE", &stat_error_size);
 
-	send_str("packet_check_info OK\r");
 	packet_body = &packet_buf[4];
+
+	send_status("packet_check_info OK\r");
+	recive_check = recive_check_body;
 	return true;
 }
 
@@ -117,7 +140,7 @@ static bool recive_check_body()
 	if (!recive_n_bytes(packet_size))
 		return false;
 
-	send_str("recive_check_body OK\r");
+	send_status("recive_check_body OK\r");
 	recive_check = recive_check_crc;
 	return true;
 }
@@ -136,29 +159,55 @@ static bool recive_check_crc()
 	CRC_ResetDR_inline();
 	uint32_t real_crc = CRC_CalcBlockCRC_inline((uint32_t*)packet_buf, (packet_cnt-4)/4);
 
-	printf("real_crc  \t%08X\r", real_crc);
-	printf("packet_crc\t%08X\r", packet_crc);
+	//printf("real_crc  \t%08X\r", real_crc);
+	//printf("packet_crc\t%08X\r", packet_crc);
 
-	send_str("recive_check_crc OK\r");
+	if (real_crc != packet_crc)
+		return ERROR_RESET("recive_check_crc: real_crc != packet_crc", &stat_error_crc);
+
+	stat_normals++;
+
+	send_status("recive_check_crc OK\r");
 	recive_packets_init();
 	return true;
 }
 
 ///////////////////////////////////////////////////////
 
-void recive_packets()
+void recive_packets_print_stat()
 {
+#ifndef LOG_DETAILS
+	static uint32_t last_time = 0;
+	uint32_t now_time = DWT_CYCCNT;
+
+	if ((now_time - last_time) < SystemCoreClock) return;
+	last_time = now_time;
+
+	printf("%i\t", stat_normals);
+	printf("\t");
+	printf("%i\t", stat_error_timeout);
+	printf("%i\t", stat_error_overfull);
+	printf("\t");
+	printf("%i\t", stat_error_start);
+	printf("%i\t", stat_error_code);
+	printf("%i\t", stat_error_size);
+	printf("%i\t", stat_error_crc);
+	printf("\r");
+#endif
+}
+
+///////////////////////////////////////////////////////
+
+void recive_packets_worker()
+{
+	packet_timeout--;
 	if (packet_timeout == 0)
 	{
+		stat_error_timeout++;
 		recive_packets_init();
-		send_str("timeout\r\n");
+		send_status("timeout\r");
 	}
-	else
-		packet_timeout--;
 
-	if (recive_check == NULL)
-		recive_check = recive_check_start;
-
-	if ((*recive_check)())
+	while ((*recive_check)())
 		packet_timeout = TIMEOUT_TURNS;
 }

@@ -14,7 +14,8 @@ void main(void)
 
 	while (1)
 	{
-		recive_packets();
+		recive_packets_worker();
+		recive_packets_print_stat();
 	}
 }
 #endif
