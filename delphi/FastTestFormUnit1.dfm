@@ -18,10 +18,10 @@ object Form1: TForm1
     803)
   PixelsPerInch = 96
   TextHeight = 13
-  object Memo1: TMemo
+  object MemoDevice: TMemo
     Left = 8
     Top = 8
-    Width = 1621
+    Width = 889
     Height = 743
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = RUSSIAN_CHARSET
@@ -32,6 +32,21 @@ object Form1: TForm1
     ParentFont = False
     ScrollBars = ssBoth
     TabOrder = 0
+  end
+  object MemoCMD: TMemo
+    Left = 904
+    Top = 8
+    Width = 737
+    Height = 743
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Font.Charset = RUSSIAN_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentFont = False
+    ScrollBars = ssBoth
+    TabOrder = 1
   end
   object Timer1mS: TTimer
     Interval = 1

@@ -20,7 +20,9 @@
 #define send_status(msg)
 #endif
 
-#define PACKET_START_SIGN 0x817EA345
+#define PACKET_SIGN_RX 0x817EA345
+#define PACKET_SIGN_TX 0x45A37E81
+
 #define TIMEOUT_TURNS 1000000
 
 static bool recive_check_start();
@@ -31,6 +33,8 @@ static bool recive_check_crc();
 static bool (*recive_check)() = NULL;
 static uint32_t packet_start = 0;
 static uint32_t packet_timeout = 0;
+
+uint8_t send_buf[4096]  __attribute__ ((aligned (sizeof(uint32_t))));
 
 uint8_t  packet_buf[4096] __attribute__ ((aligned (sizeof(uint32_t))));
 uint32_t packet_cnt = 0;
@@ -99,11 +103,13 @@ static bool recive_check_start()
 		return false;
 
 	packet_start = (packet_start << 8) | ((uint32_t)rx);
-	if (packet_start == PACKET_START_SIGN)
+	if (packet_start == PACKET_SIGN_RX)
 	{
 		send_status("packet_start_sign OK\r");
-		recive_check = recive_check_info;
 		stat_error_start -= 3;
+
+		packet_cnt = 0;
+		recive_check = recive_check_info;
 	}
 	else
 		stat_error_start++;
@@ -174,6 +180,34 @@ static bool recive_check_crc()
 
 ///////////////////////////////////////////////////////
 
+void packet_send(const uint8_t code, const uint8_t *body, const uint32_t size)
+{
+	send_buf[0] = (PACKET_SIGN_TX >> 24) & 0xFF;
+	send_buf[1] = (PACKET_SIGN_TX >> 16) & 0xFF;
+	send_buf[2] = (PACKET_SIGN_TX >>  8) & 0xFF;
+	send_buf[3] = (PACKET_SIGN_TX >>  0) & 0xFF;
+
+	send_buf[4] = code ^ 0x00;
+	send_buf[5] = code ^ 0xFF;
+
+	send_buf[6] = (size >> 0) & 0xFF;
+	send_buf[7] = (size >> 8) & 0xFF;
+
+	memcpy(&(send_buf[8]), body, size);
+
+	CRC_ResetDR_inline();
+	uint32_t crc = CRC_CalcBlockCRC_inline((uint32_t *)&(send_buf[4]), (size + 4) / 4); //+4: code + ncode + size
+
+	send_buf[8 + size + 0] = (crc >>  0) & 0xFF;
+	send_buf[8 + size + 1] = (crc >>  8) & 0xFF;
+	send_buf[8 + size + 2] = (crc >> 16) & 0xFF;
+	send_buf[8 + size + 3] = (crc >> 24) & 0xFF;
+
+	__send_block(send_buf, size + 8 + 4);
+}
+
+///////////////////////////////////////////////////////
+
 void recive_packets_print_stat()
 {
 #ifndef LOG_DETAILS
@@ -193,6 +227,11 @@ void recive_packets_print_stat()
 	printf("%i\t", stat_error_size);
 	printf("%i\t", stat_error_crc);
 	printf("\r");
+
+	const uint8_t test_code = stat_error_timeout;
+	const uint8_t test_body[12] = "TEST_BODY_01";
+
+	packet_send(test_code, test_body, sizeof(test_body));
 #endif
 }
 

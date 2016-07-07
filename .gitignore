@@ -15,9 +15,7 @@
 *.lst
 *.map
 
-*.mk
 *.~*
-makefile
 
 # Thumbnails
 ._*

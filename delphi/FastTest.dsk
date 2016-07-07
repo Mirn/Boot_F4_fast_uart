@@ -12,9 +12,10 @@ File_9=SourceModule,'E:\tel_trube\src\trube_config\oscilogramm.pas',0,1,46,1,68,
 
 [Modules]
 Module0=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas
-Module1=E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas
+Module1=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
 Module2=E:\bootloader\src\Boot_F4_fast_uart\delphi\LinkClient.pas
-Count=3
+Module3=E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas
+Count=4
 EditWindowCount=1
 
 [E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas]
@@ -22,12 +23,17 @@ ModuleType=SourceModule
 FormState=1
 FormOnTop=0
 
-[E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas]
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
 [E:\bootloader\src\Boot_F4_fast_uart\delphi\LinkClient.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
@@ -41,11 +47,12 @@ FormState=0
 FormOnTop=0
 
 [EditWindow0]
-ViewCount=3
+ViewCount=4
 CurrentView=0
 View0=0
 View1=1
 View2=2
+View3=3
 CodeExplorer=CodeExplorer@EditWindow0
 MessageView=MessageView@EditWindow0
 Create=1
@@ -63,28 +70,35 @@ LeftPanelSize=140
 LeftPanelClients=CodeExplorer@EditWindow0
 LeftPanelData=000004000000000000000000000000000000000000000000000100000000000000000C000000436F64654578706C6F726572FFFFFFFF
 RightPanelSize=0
-BottomPanelSize=52
+BottomPanelSize=0
 BottomPanelClients=MessageView@EditWindow0
-BottomPanelData=000004000000000000000000000000000000000000000000000100000000000000000B0000004D65737361676556696577FFFFFFFF
+BottomPanelData=00000400010000000B0000004D6573736167655669657700000000000000000000000000000000000100000000000000000B0000004D65737361676556696577FFFFFFFF
 
 [View0]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas
-CursorX=69
-CursorY=83
-TopLine=65
+CursorX=29
+CursorY=117
+TopLine=101
 LeftCol=1
 
 [View1]
+Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
+CursorX=29
+CursorY=92
+TopLine=56
+LeftCol=1
+
+[View2]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas
 CursorX=21
 CursorY=175
 TopLine=156
 LeftCol=1
 
-[View2]
+[View3]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\LinkClient.pas
-CursorX=84
-CursorY=14
+CursorX=51
+CursorY=8
 TopLine=1
 LeftCol=1
 
@@ -186,8 +200,8 @@ LRDockWidth=190
 Dockable=1
 SplitPos=85
 ArrangeBy=Name
-SelectedItem=OnShow
-ExpandedItems=
+SelectedItem=Anchors.akBottom
+ExpandedItems=Anchors
 HiddenCategories=
 
 [WatchWindow]
@@ -379,18 +393,18 @@ State=0
 Left=0
 Top=12
 Width=140
-Height=804
+Height=859
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=140
-ClientHeight=804
+ClientHeight=859
 TBDockHeight=305
 LRDockWidth=140
 Dockable=1
 
 [MessageView@EditWindow0]
 Create=1
-Visible=1
+Visible=0
 State=0
 Left=12
 Top=0
