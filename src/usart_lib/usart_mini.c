@@ -158,7 +158,7 @@ void send(const uint8_t tx_data)
     USART1->DR = tx_data;
 }
 
-void __send_block(const uint8_t *data, const uint32_t size)
+void send_block(const uint8_t *data, const uint32_t size)
 {
 	uint32_t cnt = size;
 	while (cnt--)

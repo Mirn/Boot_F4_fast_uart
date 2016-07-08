@@ -19,7 +19,6 @@ bool recive_byte(uint8_t *rx_data);
 uint32_t recive_count();
 uint32_t recive_free();
 
-void __send_block(const uint8_t *data, const uint32_t size);
-#define send_block(v) __send_block((uint8_t*)v, sizeof(v))
+void send_block(const uint8_t *data, const uint32_t size);
 
 #endif

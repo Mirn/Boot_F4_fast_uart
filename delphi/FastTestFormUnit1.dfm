@@ -18,11 +18,24 @@ object Form1: TForm1
     803)
   PixelsPerInch = 96
   TextHeight = 13
+  object StatLabel: TLabel
+    Left = 8
+    Top = 744
+    Width = 90
+    Height = 18
+    Caption = 'StatLabel'
+    Font.Charset = RUSSIAN_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
   object MemoDevice: TMemo
     Left = 8
     Top = 8
     Width = 889
-    Height = 743
+    Height = 729
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -37,7 +50,7 @@ object Form1: TForm1
     Left = 904
     Top = 8
     Width = 737
-    Height = 743
+    Height = 729
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText

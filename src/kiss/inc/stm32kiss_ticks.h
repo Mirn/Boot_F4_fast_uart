@@ -6,6 +6,7 @@
 #define    DWT_CONTROL   *(volatile uint32_t *)0xE0001000
 #define    SCB_DEMCR     *(volatile uint32_t *)0xE000EDFC
 
+void systick_on(uint16_t freq);
 //void systick_on(uint16_t freq, void (*func)());
 //void systick_set_func(void (*func)());
 //void systick_off();

@@ -23,7 +23,7 @@
 #define PACKET_SIGN_RX 0x817EA345
 #define PACKET_SIGN_TX 0x45A37E81
 
-#define TIMEOUT_TURNS 1000000
+#define TIMEOUT_RESTART DWT_CYCCNT
 
 static bool recive_check_start();
 static bool recive_check_info();
@@ -58,7 +58,7 @@ uint32_t stat_error_crc = 0;
 
 void recive_packets_init()
 {
-	packet_timeout = TIMEOUT_TURNS;
+	packet_timeout = TIMEOUT_RESTART;
 	recive_check = recive_check_start;
 	packet_cnt = 0;
 	RCC_AHB1PeriphClockCmd_inline(RCC_AHB1Periph_CRC, ENABLE);
@@ -110,11 +110,11 @@ static bool recive_check_start()
 
 		packet_cnt = 0;
 		recive_check = recive_check_info;
+		return true;
 	}
-	else
-		stat_error_start++;
 
-	return true;
+	stat_error_start++;
+	return false;
 }
 
 static bool recive_check_info()
@@ -163,7 +163,7 @@ static bool recive_check_crc()
 			(((uint32_t)packet_buf[packet_cnt - 1]) << 24);
 
 	CRC_ResetDR_inline();
-	uint32_t real_crc = CRC_CalcBlockCRC_inline((uint32_t*)packet_buf, (packet_cnt-4)/4);
+	uint32_t real_crc = CRC_CalcBlockCRC_inline((uint32_t*)packet_buf, (packet_cnt - 4)/4);
 
 	//printf("real_crc  \t%08X\r", real_crc);
 	//printf("packet_crc\t%08X\r", packet_crc);
@@ -203,10 +203,20 @@ void packet_send(const uint8_t code, const uint8_t *body, const uint32_t size)
 	send_buf[8 + size + 2] = (crc >> 16) & 0xFF;
 	send_buf[8 + size + 3] = (crc >> 24) & 0xFF;
 
-	__send_block(send_buf, size + 8 + 4);
+	send_block(send_buf, size + 8 + 4);
 }
 
 ///////////////////////////////////////////////////////
+
+void test_send()
+{
+	const uint8_t test_code = stat_error_timeout;
+	char test_body[12] = "";
+	static uint32_t num = 0;
+
+	snprintf(test_body, sizeof(test_body), "Test: %05X", num++);
+	packet_send(test_code, (uint8_t*)test_body, sizeof(test_body));
+}
 
 void recive_packets_print_stat()
 {
@@ -214,7 +224,7 @@ void recive_packets_print_stat()
 	static uint32_t last_time = 0;
 	uint32_t now_time = DWT_CYCCNT;
 
-	if ((now_time - last_time) < SystemCoreClock) return;
+	if ((now_time - last_time) < SystemCoreClock) return test_send();
 	last_time = now_time;
 
 	printf("%i\t", stat_normals);
@@ -228,10 +238,7 @@ void recive_packets_print_stat()
 	printf("%i\t", stat_error_crc);
 	printf("\r");
 
-	const uint8_t test_code = stat_error_timeout;
-	const uint8_t test_body[12] = "TEST_BODY_01";
-
-	packet_send(test_code, test_body, sizeof(test_body));
+	//test_send();
 #endif
 }
 
@@ -239,8 +246,8 @@ void recive_packets_print_stat()
 
 void recive_packets_worker()
 {
-	packet_timeout--;
-	if (packet_timeout == 0)
+	const uint32_t time_limit = (SystemCoreClock / 1000) * 200;
+	if ((DWT_CYCCNT - packet_timeout) > time_limit)
 	{
 		stat_error_timeout++;
 		recive_packets_init();
@@ -248,5 +255,5 @@ void recive_packets_worker()
 	}
 
 	while ((*recive_check)())
-		packet_timeout = TIMEOUT_TURNS;
+		packet_timeout = TIMEOUT_RESTART;
 }

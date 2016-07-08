@@ -2,8 +2,7 @@ program FastTest;
 
 uses
   Forms,
-  FastTestFormUnit1 in 'FastTestFormUnit1.pas' {Form1},
-  stm32_SFU in 'stm32_SFU.pas';
+  FastTestFormUnit1 in 'FastTestFormUnit1.pas' {Form1};
 
 {$R *.res}
 

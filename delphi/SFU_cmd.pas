@@ -1,17 +1,17 @@
-unit stm32_SFU;
+unit SFU_cmd;
 
 interface
 uses
  linkclient;
 
 type
- tSFU_EventWrite=procedure(data:pbyte; size:integer) of object;
- tSFU_EventCommand=procedure(code:byte; body:pbyte; count:integer) of object;
- tSFU_EventInfoString=procedure(sender:tobject; msg:string) of object;
- tSFU_EventLog=procedure(sender:tobject; msg:string) of object;
- tSFU_internalParser = procedure(data:byte) of object;
+ tSFUcmd_EventWrite=procedure(data:pbyte; size:integer) of object;
+ tSFUcmd_EventCommand=procedure(code:byte; body:pbyte; count:integer) of object;
+ tSFUcmd_EventInfoString=procedure(sender:tobject; msg:string) of object;
+ tSFUcmd_EventLog=procedure(sender:tobject; msg:string) of object;
+ tSFUcmd_internalParser = procedure(data:byte) of object;
 
- tstm32_sfu = class
+ tSFUcmd = class
  private
   info_string : string;
 
@@ -25,14 +25,14 @@ type
   recive_body : pbyte;
   recive_crc : cardinal;
 
+  recive_timelimit : cardinal;
   recive_block_cnt : cardinal;
 
-  onParse : tSFU_internalParser;
+  onParse : tSFUcmd_internalParser;
 
 
-  procedure log(msg:string);
   procedure recive_reset;
-  function  error_check(error_flag:boolean; msg:string):boolean;
+  function  error_check(error_flag:boolean; msg:string; var stat:cardinal):boolean;
   function  recive_block_add(data:byte; need:cardinal):boolean;
 
   procedure parse_start(data:byte);
@@ -40,30 +40,44 @@ type
   procedure parse_body(data:byte);
   procedure parse_crc(data:byte);
 
+ protected
+  procedure log(msg:string);
+
  public
+  stat_send : cardinal;
+  stat_normals : cardinal;
+  stat_errors : cardinal;
+  stat_error_timeout : cardinal;
+  stat_error_overfull : cardinal;
+  stat_error_start : cardinal;
+  stat_error_code : cardinal;
+  stat_error_size : cardinal;
+  stat_error_crc : cardinal;
+
   send_buf : array[0..4095] of byte;
   send_cnt : integer;
 
-  onWrite : tSFU_EventWrite;
-  onCommand : tSFU_EventCommand;
-  onInfoString : tSFU_EventInfoString;
-  onLog : tSFU_EventLog;
+  onWrite : tSFUcmd_EventWrite;
+  onCommand : tSFUcmd_EventCommand;
+  onInfoString : tSFUcmd_EventInfoString;
+  onLog : tSFUcmd_EventLog;
 
-  constructor create(write:tSFU_EventWrite = nil; command:tSFU_EventCommand = nil; infostring:tSFU_EventInfoString = nil; log:tSFU_EventLog = nil);
+  constructor create(write:tSFUcmd_EventWrite = nil; command:tSFUcmd_EventCommand = nil; infostring:tSFUcmd_EventInfoString = nil; log:tSFUcmd_EventLog = nil);
   procedure send_command(code:byte; cmd_body:pointer = nil; size:word = 0);
   procedure process_recive(sender:tLinkClient; data:pbyte; size:integer);
  end;
 
 implementation
 uses
-  SysUtils, CRCunit;
+  SysUtils, Windows, CRCunit;
 
 Const
  PACKET_SIGN_TX:cardinal = $817EA345;
  PACKET_SIGN_RX:cardinal = $45A37E81;
+ RECIVE_TIMEOUT_mS = 200;
 
 
-constructor tstm32_sfu.create(write:tSFU_EventWrite = nil; command:tSFU_EventCommand = nil; infostring:tSFU_EventInfoString = nil; log:tSFU_EventLog = nil);
+constructor tSFUcmd.create(write:tSFUcmd_EventWrite = nil; command:tSFUcmd_EventCommand = nil; infostring:tSFUcmd_EventInfoString = nil; log:tSFUcmd_EventLog = nil);
 begin
  onParse := self.parse_start;
 
@@ -73,13 +87,13 @@ begin
  onLog := log;
 end;
 
-procedure tstm32_sfu.log(msg:string);
+procedure tSFUcmd.log(msg:string);
 begin
  if @onlog<>nil then
   onLog(self, msg);
 end;
 
-procedure tstm32_sfu.send_command(code:byte; cmd_body:pointer = nil; size:word = 0);
+procedure tSFUcmd.send_command(code:byte; cmd_body:pointer = nil; size:word = 0);
 var
  crc : cardinal;
  pos : integer;
@@ -112,16 +126,17 @@ begin
  send_cnt := 8 + size + 4;
  if @onWrite <> nil then
   onWrite(@send_buf[0], send_cnt);
+ inc(stat_send);
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
 
-function  tstm32_sfu.recive_block_add(data:byte; need:cardinal):boolean;
+function  tSFUcmd.recive_block_add(data:byte; need:cardinal):boolean;
 begin
  result := false;
- if error_check(recive_cnt >= length(recive_buf), 'recive_cnt >= length(recive_buf)') then
+ if error_check(recive_cnt >= length(recive_buf), 'recive_cnt >= length(recive_buf)', stat_error_overfull) then
   exit;
 
  recive_buf[recive_cnt] := data;
@@ -133,23 +148,25 @@ begin
   recive_block_cnt := 0;
 end;
 
-procedure tstm32_sfu.recive_reset;
+procedure tSFUcmd.recive_reset;
 begin
  onParse := self.parse_start;
  recive_block_cnt := 0;
  recive_cnt := 0;
 end;
 
-function  tstm32_sfu.error_check(error_flag:boolean; msg:string):boolean;
+function  tSFUcmd.error_check(error_flag:boolean; msg:string; var stat:cardinal):boolean;
 begin
  result := error_flag;
  if not error_flag then exit;
  log('ERROR: ' + msg);
  recive_reset;
+ inc(stat_errors);
+ inc(stat);
 end;
 ////////////////////////////////////////////////////////////////////////////////////
 
-procedure tstm32_sfu.parse_start(data:byte);
+procedure tSFUcmd.parse_start(data:byte);
 var
  pos : integer;
 begin
@@ -163,42 +180,52 @@ begin
  if recive_seq = PACKET_SIGN_RX then
   begin
    delete(info_string, length(info_string) - 3, 4);
-   onParse := self.parse_info;
+   dec(stat_error_start, 3);
+
+   recive_timelimit := gettickcount + RECIVE_TIMEOUT_mS;
+   onParse := parse_info;
+
    recive_block_cnt := 0;
    recive_cnt := 0;
   end
  else
-  if data = 13 then
-   begin
-    if @onInfoString <> nil then
-     onInfoString(self, info_string);
-    info_string := '';
-   end;
+  begin
+   inc(stat_error_start);
+   if data = 13 then
+    begin
+     if @onInfoString <> nil then
+      onInfoString(self, info_string);
+     info_string := '';
+    end;
+  end;
 end;
 
-procedure tstm32_sfu.parse_info(data:byte);
+procedure tSFUcmd.parse_info(data:byte);
 begin
  if not recive_block_add(data, 4) then exit;
 
  recive_code   := recive_buf[0] xor $00;
  recive_code_n := recive_buf[1] xor $FF;
- if error_check(recive_code <> recive_code_n, 'recive_code <> recive_code_n') then exit;
+ if error_check(recive_code <> recive_code_n, 'recive_code <> recive_code_n', stat_error_code) then
+  exit;
 
  recive_size := (word(recive_buf[2]) shl 0) or
                 (word(recive_buf[3]) shl 8);
- if error_check(recive_size >= (Length(recive_buf) - 8), 'recive_size >= (Length() - 8)') then exit;
+ if error_check(recive_size >= (Length(recive_buf) - 8), 'recive_size >= (Length() - 8)', stat_error_size) then
+  exit;
 
  recive_body := @(recive_buf[4]);
  onParse := parse_body;
 end;
 
-procedure tstm32_sfu.parse_body(data:byte);
+procedure tSFUcmd.parse_body(data:byte);
 begin
- if not recive_block_add(data, recive_size) then exit;
+ if not recive_block_add(data, recive_size) then
+  exit;
  onParse := parse_crc;
 end;
 
-procedure tstm32_sfu.parse_crc(data:byte);
+procedure tSFUcmd.parse_crc(data:byte);
 var
  need_crc : cardinal;
 begin
@@ -211,7 +238,9 @@ begin
                (cardinal(recive_buf[recive_cnt - 2]) shl 16) or
                (cardinal(recive_buf[recive_cnt - 1]) shl 24);
 
- if error_check(need_crc <> recive_crc, 'need_crc <> recive_crc') then exit;
+ if error_check(need_crc <> recive_crc, 'need_crc <> recive_crc', stat_error_crc) then
+  exit;
+ inc(stat_normals);
 
  if @onCommand <> nil then
   onCommand(recive_code, recive_body, recive_size);
@@ -219,14 +248,20 @@ begin
  recive_reset;
 end;
 
-procedure tstm32_sfu.process_recive(sender:tLinkClient; data:pbyte; size:integer);
+procedure tSFUcmd.process_recive(sender:tLinkClient; data:pbyte; size:integer);
+var
+ p : pointer;
 begin
- while size > 0 do
-  begin
-   onParse(data^);
-   inc(data);
-   dec(size);
-  end;
+ if (TMethod(onParse).Code <> @tSFUcmd.parse_start) then
+  error_check(GetTickCount > recive_timelimit, 'RECIVE_TIMEOUT', stat_error_timeout);
+
+ if data <> nil then
+  while size > 0 do
+   begin
+    onParse(data^);
+    inc(data);
+    dec(size);
+   end;
 end;
 
 

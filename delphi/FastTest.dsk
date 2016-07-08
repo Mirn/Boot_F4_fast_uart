@@ -12,10 +12,11 @@ File_9=SourceModule,'E:\tel_trube\src\trube_config\oscilogramm.pas',0,1,46,1,68,
 
 [Modules]
 Module0=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas
-Module1=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
+Module1=E:\bootloader\src\Boot_F4_fast_uart\delphi\stm32_SFU.pas
 Module2=E:\bootloader\src\Boot_F4_fast_uart\delphi\LinkClient.pas
 Module3=E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas
-Count=4
+Module4=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
+Count=5
 EditWindowCount=1
 
 [E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas]
@@ -23,7 +24,7 @@ ModuleType=SourceModule
 FormState=1
 FormOnTop=0
 
-[E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas]
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\stm32_SFU.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
@@ -38,6 +39,11 @@ ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
 [C:\Program Files (x86)\Borland\Delphi6\Projects\ProjectGroup1.bpg]
 FormState=0
 FormOnTop=0
@@ -47,12 +53,13 @@ FormState=0
 FormOnTop=0
 
 [EditWindow0]
-ViewCount=4
+ViewCount=5
 CurrentView=0
 View0=0
 View1=1
 View2=2
 View3=3
+View4=4
 CodeExplorer=CodeExplorer@EditWindow0
 MessageView=MessageView@EditWindow0
 Create=1
@@ -61,41 +68,48 @@ State=0
 Left=200
 Top=140
 Width=1740
-Height=903
+Height=1164
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=1730
-ClientHeight=871
+ClientHeight=1132
 LeftPanelSize=140
 LeftPanelClients=CodeExplorer@EditWindow0
 LeftPanelData=000004000000000000000000000000000000000000000000000100000000000000000C000000436F64654578706C6F726572FFFFFFFF
 RightPanelSize=0
 BottomPanelSize=0
 BottomPanelClients=MessageView@EditWindow0
-BottomPanelData=00000400010000000B0000004D6573736167655669657700000000000000000000000000000000000100000000000000000B0000004D65737361676556696577FFFFFFFF
+BottomPanelData=00000400010000000B0000004D65737361676556696577C206000000000000023400000000000000010000000000000000000000000100000000C2060000000000000100000000C20600000B0000004D65737361676556696577FFFFFFFF
 
 [View0]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas
-CursorX=29
-CursorY=117
-TopLine=101
+CursorX=48
+CursorY=52
+TopLine=30
 LeftCol=1
 
 [View1]
-Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
-CursorX=29
-CursorY=92
-TopLine=56
+Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\stm32_SFU.pas
+CursorX=39
+CursorY=255
+TopLine=225
 LeftCol=1
 
 [View2]
+Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
+CursorX=1
+CursorY=89
+TopLine=56
+LeftCol=1
+
+[View3]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas
 CursorX=21
 CursorY=175
 TopLine=156
 LeftCol=1
 
-[View3]
+[View4]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\LinkClient.pas
 CursorX=51
 CursorY=8
@@ -200,7 +214,7 @@ LRDockWidth=190
 Dockable=1
 SplitPos=85
 ArrangeBy=Name
-SelectedItem=Anchors.akBottom
+SelectedItem=Name
 ExpandedItems=Anchors
 HiddenCategories=
 
@@ -393,11 +407,11 @@ State=0
 Left=0
 Top=12
 Width=140
-Height=859
+Height=1120
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=140
-ClientHeight=859
+ClientHeight=1120
 TBDockHeight=305
 LRDockWidth=140
 Dockable=1

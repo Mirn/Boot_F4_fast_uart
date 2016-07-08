@@ -11,11 +11,13 @@ void main(void)
 	ticks_init();
 	usart_init();
 	recive_packets_init();
+	systick_on(1000);
 
 	while (1)
 	{
 		recive_packets_worker();
 		recive_packets_print_stat();
+		__WFI();
 	}
 }
 #endif

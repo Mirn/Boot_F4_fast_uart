@@ -7,19 +7,20 @@ uses
   Dialogs, StdCtrls,
   CRCunit,
   comclient, linkclient, ExtCtrls,
-  stm32_SFU;
+  SFU_cmd;
 
 type
   TForm1 = class(TForm)
     MemoDevice: TMemo;
     Timer1mS: TTimer;
     MemoCMD: TMemo;
+    StatLabel: TLabel;
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Timer1mSTimer(Sender: TObject);
   private
     device : tCOMClient;
-    sfu : tstm32_sfu;
+    sfu : tSFUcmd;
 
     procedure onLog(sender:tobject; msg:string);
     procedure onInfoString(sender:tobject; msg:string);
@@ -40,7 +41,7 @@ implementation
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
- device := tCOMClient.Create($4000, $4000);
+ device := tCOMClient.Create($4000, $4000);//, $2000, $2000);
 
  device.onLog := self.onLog;
  device.onLogBegin := self.onLogBegin;
@@ -52,7 +53,7 @@ begin
  device.port_parity := NOPARITY;
  device.no_activate := true;
 
- sfu := tstm32_sfu.create;
+ sfu := tSFUcmd.create;
  sfu.onWrite := device.Write;
  sfu.onLog := self.onLog;
  sfu.onInfoString := self.onInfoString;
@@ -71,7 +72,7 @@ end;
 
 procedure TForm1.onInfoString(sender:tobject; msg:string);
 begin
- MemoDevice.Lines.Add('SFU: ' + msg);
+ MemoDevice.Lines.Add('SFU:'#9 + msg);
 end;
 
 procedure TForm1.onLog(sender:tobject; msg:string);
@@ -96,7 +97,7 @@ begin
  str := '';
  setlength(str, count);
  move(body^, str[1], count);
- MemoCMD.Lines.Add('CMD: ' + str);
+ //MemoCMD.Lines.Add('CMD: ' + str);
 end;
 
 procedure rand_array(buf:pbyte; cnt:cardinal);
@@ -117,6 +118,8 @@ var
 begin
  if device.State <> link_establish then exit;
 
+ sfu.process_recive(device, nil, 0);
+
  while device.tx_free_bytes > sizeof(body)*2 do
   begin
    size := random(sizeof(body) div 4) * 4;
@@ -125,6 +128,18 @@ begin
 
    sfu.send_command(code, @body[0], size);
   end;
+
+ StatLabel.Caption :=
+    'TXok: ' + inttostr(sfu.stat_send) +
+    '  RXok: ' + inttostr(sfu.stat_normals) +
+    '  ' +
+    '  start: ' + inttostr(sfu.stat_error_start) +
+    '  Err: ' + inttostr(sfu.stat_errors) +
+    '  ' + 
+    '  Timeout: ' + inttostr(sfu.stat_error_timeout) +
+    '  code: ' + inttostr(sfu.stat_error_code) +
+    '  size: ' + inttostr(sfu.stat_error_size) +
+    '  crc: ' + inttostr(sfu.stat_error_crc);
 end;
 
 end.

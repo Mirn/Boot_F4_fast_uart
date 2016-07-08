@@ -1,22 +1,31 @@
 #include "stm32kiss.h"
-/*
-void (*systick_func)() = NULL;
+
+//void (*systick_func)() = NULL;
 
 void SysTick_Handler()
 {
-	if (systick_func != NULL)
-		(*systick_func)();
+//	if (systick_func != NULL)
+//		(*systick_func)();
 }
 
-void systick_on(uint16_t freq, void (*func)())
+//void systick_on(uint16_t freq, void (*func)())
+void systick_on(uint16_t freq)
 {
-	systick_func = func;
+//	systick_func = func;
 
-	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
+//	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
 	SysTick_Config(SystemCoreClock / freq);
+
+	SysTick->CTRL |= SysTick_CLKSource_HCLK;
+	SysTick->LOAD  = (SystemCoreClock / freq) - 1;
+	SysTick->VAL   = 0;                                          /* Load the SysTick Counter Value */
+	SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
+	                   SysTick_CTRL_TICKINT_Msk   |
+	                   SysTick_CTRL_ENABLE_Msk;                    /* Enable SysTick IRQ and SysTick Timer */
+
 }
 
-void systick_set_func(void (*func)())
+/*void systick_set_func(void (*func)())
 {
 	systick_func = func;
 }
