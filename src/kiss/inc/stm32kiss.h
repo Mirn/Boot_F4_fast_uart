@@ -39,6 +39,21 @@ typedef struct
 	uint32_t max;
 } tLIMIT;
 
+#define DEVICE_ID_BLOCK_PTR ((uint8_t*)0x1FFF7A10)
+
+#ifdef STM32F4XX
+#define FLASH_PAGE_SIZE      1024
+#define FLASH_SIZE          (*((uint16_t *)0x1FFF7A22))
+
+#define BOOTLOADER_SIZE     0x8000
+#define BOOTLOADER_FROM    (FLASH_BASE)
+#define BOOTLOADER_TO      (FLASH_BASE + BOOTLOADER_SIZE)
+#endif
+
+#define FLASH_SIZE_CORRECT   ((FLASH_SIZE*1024 - BOOTLOADER_SIZE) / 1024)
+#define FLASH_SIZE_CORRECT_L (FLASH_SIZE_CORRECT & 0xFF)
+#define FLASH_SIZE_CORRECT_H (FLASH_SIZE_CORRECT >> 8)
+
 #define MIN(a,b)  (((a) < (b)) ? (a) : (b))
 #define MAX(a,b)  (((a) > (b)) ? (a) : (b))
 #define AVRG(a,b) (((a) + (b))/2)

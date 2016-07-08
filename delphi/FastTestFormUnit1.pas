@@ -93,11 +93,21 @@ end;
 procedure TForm1.onCommand(code:byte; body:pbyte; count:integer);
 var
  str : string;
+ cnt : integer;
 begin
  str := '';
- setlength(str, count);
- move(body^, str[1], count);
- //MemoCMD.Lines.Add('CMD: ' + str);
+ cnt := count;
+ while cnt > 0 do
+  begin
+//   if body^ > 32 then
+//    str := str + ansichar(body^)
+//   else
+    str := str + inttohex(body^, 2) + ' ';
+   inc(body);
+   dec(cnt);
+  end;
+
+ MemoCMD.Lines.Add('CMD('+inttohex(code, 2)+'#'+inttohex(count, 2)+'): ' + str);
 end;
 
 procedure rand_array(buf:pbyte; cnt:cardinal);
@@ -112,7 +122,7 @@ end;
 
 procedure TForm1.Timer1mSTimer(Sender: TObject);
 var
- body : array[0..$1000-12] of byte;
+ body : array[0..100-12] of byte;
  size : integer;
  code : byte;
 begin

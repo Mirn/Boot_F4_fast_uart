@@ -1,8 +1,8 @@
 object Form1: TForm1
   Left = 192
   Top = 118
-  Width = 1661
-  Height = 835
+  Width = 1710
+  Height = 831
   Caption = 'Form1'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,8 +14,8 @@ object Form1: TForm1
   OnCreate = FormCreate
   OnShow = FormShow
   DesignSize = (
-    1651
-    803)
+    1700
+    799)
   PixelsPerInch = 96
   TextHeight = 13
   object StatLabel: TLabel
@@ -34,9 +34,9 @@ object Form1: TForm1
   object MemoDevice: TMemo
     Left = 8
     Top = 8
-    Width = 889
-    Height = 729
-    Anchors = [akLeft, akTop, akRight, akBottom]
+    Width = 833
+    Height = 725
+    Anchors = [akLeft, akTop, akBottom]
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
     Font.Height = -16
@@ -47,10 +47,10 @@ object Form1: TForm1
     TabOrder = 0
   end
   object MemoCMD: TMemo
-    Left = 904
+    Left = 848
     Top = 8
-    Width = 737
-    Height = 729
+    Width = 842
+    Height = 725
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText

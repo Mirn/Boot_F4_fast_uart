@@ -12,6 +12,8 @@
 #include "stm32f4xx_rcc_inline.h"
 #include "stm32f4xx_crc_inline.h"
 
+#include "sfu_commands.h"
+
 //#define LOG_DETAILS
 
 #ifdef LOG_DETAILS
@@ -172,8 +174,10 @@ static bool recive_check_crc()
 		return ERROR_RESET("recive_check_crc: real_crc != packet_crc", &stat_error_crc);
 
 	stat_normals++;
-
 	send_status("recive_check_crc OK\r");
+
+	sfu_command_parser(packet_code, packet_body, packet_size);
+
 	recive_packets_init();
 	return true;
 }
@@ -224,7 +228,8 @@ void recive_packets_print_stat()
 	static uint32_t last_time = 0;
 	uint32_t now_time = DWT_CYCCNT;
 
-	if ((now_time - last_time) < SystemCoreClock) return test_send();
+	if ((now_time - last_time) < SystemCoreClock)
+		return;// test_send();
 	last_time = now_time;
 
 	printf("%i\t", stat_normals);
@@ -237,7 +242,6 @@ void recive_packets_print_stat()
 	printf("%i\t", stat_error_size);
 	printf("%i\t", stat_error_crc);
 	printf("\r");
-
 	//test_send();
 #endif
 }
@@ -252,6 +256,7 @@ void recive_packets_worker()
 		stat_error_timeout++;
 		recive_packets_init();
 		send_status("timeout\r");
+		sfu_command_timeout();
 	}
 
 	while ((*recive_check)())
