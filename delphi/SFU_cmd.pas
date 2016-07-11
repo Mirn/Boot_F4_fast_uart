@@ -6,7 +6,7 @@ uses
 
 type
  tSFUcmd_EventWrite=procedure(data:pbyte; size:integer) of object;
- tSFUcmd_EventCommand=procedure(code:byte; body:pbyte; count:integer) of object;
+ tSFUcmd_EventCommand=procedure(code:byte; body:pbyte; count:word) of object;
  tSFUcmd_EventInfoString=procedure(sender:tobject; msg:string) of object;
  tSFUcmd_EventLog=procedure(sender:tobject; msg:string) of object;
  tSFUcmd_internalParser = procedure(data:byte) of object;
@@ -93,6 +93,9 @@ begin
   onLog(self, msg);
 end;
 
+////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
+
 procedure tSFUcmd.send_command(code:byte; cmd_body:pointer = nil; size:word = 0);
 var
  crc : cardinal;
@@ -159,11 +162,12 @@ function  tSFUcmd.error_check(error_flag:boolean; msg:string; var stat:cardinal)
 begin
  result := error_flag;
  if not error_flag then exit;
- log('ERROR: ' + msg);
+ log('SFUcmd ERROR: ' + msg);
  recive_reset;
  inc(stat_errors);
  inc(stat);
 end;
+
 ////////////////////////////////////////////////////////////////////////////////////
 
 procedure tSFUcmd.parse_start(data:byte);
@@ -247,6 +251,9 @@ begin
 
  recive_reset;
 end;
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////
 
 procedure tSFUcmd.process_recive(sender:tLinkClient; data:pbyte; size:integer);
 var

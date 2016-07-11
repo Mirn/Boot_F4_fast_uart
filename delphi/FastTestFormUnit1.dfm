@@ -34,7 +34,7 @@ object Form1: TForm1
   object MemoDevice: TMemo
     Left = 8
     Top = 8
-    Width = 833
+    Width = 865
     Height = 725
     Anchors = [akLeft, akTop, akBottom]
     Font.Charset = RUSSIAN_CHARSET
@@ -47,9 +47,9 @@ object Form1: TForm1
     TabOrder = 0
   end
   object MemoCMD: TMemo
-    Left = 848
+    Left = 880
     Top = 8
-    Width = 842
+    Width = 810
     Height = 725
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = RUSSIAN_CHARSET

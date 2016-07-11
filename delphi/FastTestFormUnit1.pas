@@ -7,7 +7,8 @@ uses
   Dialogs, StdCtrls,
   CRCunit,
   comclient, linkclient, ExtCtrls,
-  SFU_cmd;
+  SFU_cmd,
+  SFU_boot;
 
 type
   TForm1 = class(TForm)
@@ -21,13 +22,15 @@ type
   private
     device : tCOMClient;
     sfu : tSFUcmd;
+    boot : tSFUboot;
 
     procedure onLog(sender:tobject; msg:string);
+    procedure onLogBoot(sender:tobject; msg:string);
     procedure onInfoString(sender:tobject; msg:string);
     procedure onLogBegin(sender:tLinkClient);
     procedure onLogEnd(sender:tLinkClient);
 
-    procedure onCommand(code:byte; body:pbyte; count:integer);
+    procedure onCommand(code:byte; body:pbyte; count:word);
 
   public
   end;
@@ -57,7 +60,11 @@ begin
  sfu.onWrite := device.Write;
  sfu.onLog := self.onLog;
  sfu.onInfoString := self.onInfoString;
- sfu.onCommand := self.onCommand;
+ //sfu.onCommand := self.onCommand;
+
+ boot := tSFUboot.create(sfu.send_command);
+ boot.onLog := self.onLogBoot;
+ sfu.onCommand := boot.recive_command;
 
  device.onRX := sfu.process_recive;
 end;
@@ -72,7 +79,12 @@ end;
 
 procedure TForm1.onInfoString(sender:tobject; msg:string);
 begin
- MemoDevice.Lines.Add('SFU:'#9 + msg);
+ MemoDevice.Lines.Add('SFU device:'#9 + msg);
+end;
+
+procedure TForm1.onLogBoot(sender:tobject; msg:string);
+begin
+ MemoCMD.Lines.Add('Boot:'#9 + msg);
 end;
 
 procedure TForm1.onLog(sender:tobject; msg:string);
@@ -90,7 +102,7 @@ begin
  MemoDevice.Lines.EndUpdate;
 end;
 
-procedure TForm1.onCommand(code:byte; body:pbyte; count:integer);
+procedure TForm1.onCommand(code:byte; body:pbyte; count:word);
 var
  str : string;
  cnt : integer;
@@ -122,7 +134,7 @@ end;
 
 procedure TForm1.Timer1mSTimer(Sender: TObject);
 var
- body : array[0..100-12] of byte;
+ body : array[0..$100-12] of byte;
  size : integer;
  code : byte;
 begin
@@ -130,14 +142,16 @@ begin
 
  sfu.process_recive(device, nil, 0);
 
- while device.tx_free_bytes > sizeof(body)*2 do
+ boot.next_send;
+
+{ while device.tx_free_bytes > sizeof(body)*2 do
   begin
    size := random(sizeof(body) div 4) * 4;
    code := random(256);
    rand_array(@body[0], size);
 
    sfu.send_command(code, @body[0], size);
-  end;
+  end;}
 
  StatLabel.Caption :=
     'TXok: ' + inttostr(sfu.stat_send) +

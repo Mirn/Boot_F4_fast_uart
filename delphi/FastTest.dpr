@@ -2,7 +2,8 @@ program FastTest;
 
 uses
   Forms,
-  FastTestFormUnit1 in 'FastTestFormUnit1.pas' {Form1};
+  FastTestFormUnit1 in 'FastTestFormUnit1.pas' {Form1},
+  SFU_boot in 'SFU_boot.pas';
 
 {$R *.res}
 
