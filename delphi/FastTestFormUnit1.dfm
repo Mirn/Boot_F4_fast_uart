@@ -61,6 +61,16 @@ object Form1: TForm1
     ScrollBars = ssBoth
     TabOrder = 1
   end
+  object ProgressBar1: TProgressBar
+    Left = 8
+    Top = 768
+    Width = 353
+    Height = 17
+    Min = 0
+    Max = 100
+    Smooth = True
+    TabOrder = 2
+  end
   object Timer1mS: TTimer
     Interval = 1
     OnTimer = Timer1mSTimer

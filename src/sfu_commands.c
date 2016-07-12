@@ -14,17 +14,23 @@
 #define SFU_VER_L 0
 #define SFU_VER_H 1
 
-#define SFU_CMD_INFO  0x97
-#define SFU_CMD_ERASE 0xC5
-#define SFU_CMD_WRITE 0x38
+#define SFU_CMD_INFO    0x97
+#define SFU_CMD_ERASE   0xC5
+#define SFU_CMD_WRITE   0x38
+#define SFU_CMD_TIMEOUT 0xAA
+#define SFU_CMD_ERROR   0x55
 
 static void sfu_command_info(uint8_t code, uint8_t *body, uint32_t size);
 static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size);
 static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size);
 
+static uint32_t write_addr = 0;
+
 void sfu_command_timeout()
 {
-
+	if (write_addr == 0) return;
+	write_addr = 0;
+	packet_send(SFU_CMD_TIMEOUT, (uint8_t*)&write_addr, sizeof(write_addr));
 }
 
 void sfu_command_parser(uint8_t code, uint8_t *body, uint32_t size)
@@ -32,6 +38,24 @@ void sfu_command_parser(uint8_t code, uint8_t *body, uint32_t size)
 	if (code == SFU_CMD_INFO)  sfu_command_info(code, body, size);
 	if (code == SFU_CMD_ERASE) sfu_command_erase(code, body, size);
 	if (code == SFU_CMD_WRITE) sfu_command_write(code, body, size);
+}
+
+///////////////////////////////////////
+
+static void serialize_uint32(uint8_t *body, uint32_t value)
+{
+	body[0] = (value >>  0) & 0xFF;
+	body[1] = (value >>  8) & 0xFF;
+	body[2] = (value >> 16) & 0xFF;
+	body[3] = (value >> 24) & 0xFF;
+}
+
+static uint32_t deserialize_uint32(uint8_t *body)
+{
+	return  ((uint32_t)body[0] <<  0) |
+			((uint32_t)body[1] <<  8) |
+			((uint32_t)body[2] << 16) |
+			((uint32_t)body[3] << 24);
 }
 
 ///////////////////////////////////////
@@ -76,7 +100,7 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 
 	if ((body[0] == 0xFF) && (body[1] == 0xFF) && (body[2] == 0xFF) && (body[3] == 0xFF))
 	{
-		const uint32_t sectors[] = {
+		const uint16_t sectors[] = {
 				FLASH_Sector_1,
 				FLASH_Sector_2,
 				FLASH_Sector_3,
@@ -105,14 +129,63 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 
 		if (status == FLASH_COMPLETE)
 		{
+			write_addr = MAIN_START_FROM;
 			packet_send(code, body, size);
 			return;
 		}
 	}
-	packet_send(code, body, 0);
+
+	packet_send(SFU_CMD_ERROR, body, 0);
 }
 
 static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 {
+	if (size > 4)
+	{
+		uint32_t body_addr = deserialize_uint32(body);
 
+		if (write_addr != 0)
+		{
+			packet_send(SFU_CMD_ERROR, body, 0);
+			return;
+		}
+
+		uint32_t *word_data = (uint32_t*)&(body[4]);
+		uint32_t word_count = (size - 4) / 4;
+
+		printf("WR:\t%08X\t%08X\t%u\r", body_addr, write_addr, word_count);
+		if ((body_addr == write_addr) && (word_count > 0))
+		{
+			FLASH_Status status = FLASH_BUSY;
+			FLASH_Unlock();
+
+			FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |
+		                    FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+			while (word_count--)
+			{
+				status = FLASH_ProgramWord(write_addr, *word_data);
+				if (status != FLASH_COMPLETE) break;
+
+				write_addr += 4;
+				word_data++;
+			}
+			FLASH_Lock();
+
+			if (status != FLASH_COMPLETE)
+			{
+				packet_send(SFU_CMD_ERROR, body, 0);
+				write_addr = 0;
+			}
+		}
+	}
+
+	uint32_t free = recive_free();
+	uint32_t count = recive_count();
+
+	serialize_uint32(body + 0, write_addr);
+	serialize_uint32(body + 4, free);
+	serialize_uint32(body + 8, count);
+
+	packet_send(code, body, 12);
 }

@@ -19,6 +19,7 @@
 
 # Thumbnails
 ._*
+delphi/FastTest.dsk
 
 
 # Windows
@@ -37,5 +38,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-/Release
 *.dsk
+
+/Release

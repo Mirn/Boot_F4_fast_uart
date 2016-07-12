@@ -8,7 +8,7 @@ uses
   CRCunit,
   comclient, linkclient, ExtCtrls,
   SFU_cmd,
-  SFU_boot;
+  SFU_boot, ComCtrls;
 
 type
   TForm1 = class(TForm)
@@ -16,6 +16,7 @@ type
     Timer1mS: TTimer;
     MemoCMD: TMemo;
     StatLabel: TLabel;
+    ProgressBar1: TProgressBar;
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Timer1mSTimer(Sender: TObject);
@@ -64,6 +65,8 @@ begin
 
  boot := tSFUboot.create(sfu.send_command);
  boot.onLog := self.onLogBoot;
+ boot.firmware_fname := 'E:\gsm\lab\Firmware\SPGateM_pcb16-4lay_ver 1.21 (MR) codec fix.bin';
+
  sfu.onCommand := boot.recive_command;
 
  device.onRX := sfu.process_recive;
@@ -141,7 +144,6 @@ begin
  if device.State <> link_establish then exit;
 
  sfu.process_recive(device, nil, 0);
-
  boot.next_send;
 
 { while device.tx_free_bytes > sizeof(body)*2 do
@@ -164,6 +166,9 @@ begin
     '  code: ' + inttostr(sfu.stat_error_code) +
     '  size: ' + inttostr(sfu.stat_error_size) +
     '  crc: ' + inttostr(sfu.stat_error_crc);
+
+ ProgressBar1.Max := boot.progress_max;
+ ProgressBar1.Position := boot.progress_pos;
 end;
 
 end.
