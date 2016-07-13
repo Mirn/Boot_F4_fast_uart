@@ -1,3 +1,4 @@
+{$I-}
 unit SFU_cmd;
 
 interface
@@ -30,6 +31,7 @@ type
 
   onParse : tSFUcmd_internalParser;
 
+  raw_log : file;
 
   procedure recive_reset;
   function  error_check(error_flag:boolean; msg:string; var stat:cardinal):boolean;
@@ -85,6 +87,9 @@ begin
  onCommand := command;
  onInfoString := infostring;
  onLog := log;
+
+ AssignFile(raw_log, 'raw_log.dat');
+ rewrite(raw_log, 1);
 end;
 
 procedure tSFUcmd.log(msg:string);
@@ -219,7 +224,11 @@ begin
   exit;
 
  recive_body := @(recive_buf[4]);
- onParse := parse_body;
+
+ if recive_size = 0 then
+  onParse := parse_crc
+ else
+  onParse := parse_body;
 end;
 
 procedure tSFUcmd.parse_body(data:byte);
@@ -259,8 +268,10 @@ procedure tSFUcmd.process_recive(sender:tLinkClient; data:pbyte; size:integer);
 var
  p : pointer;
 begin
+ BlockWrite(raw_log, data^, size);
+
  if (TMethod(onParse).Code <> @tSFUcmd.parse_start) then
-  error_check(GetTickCount > recive_timelimit, 'RECIVE_TIMEOUT', stat_error_timeout);
+  error_check(GetTickCount > recive_timelimit, 'tSFUcmd:RECIVE_TIMEOUT', stat_error_timeout);
 
  if data <> nil then
   while size > 0 do

@@ -14,17 +14,25 @@
 #define SFU_VER_L 0
 #define SFU_VER_H 1
 
+#define SFU_CMD_ERASE_PART   0xB3
 #define SFU_CMD_INFO    0x97
 #define SFU_CMD_ERASE   0xC5
 #define SFU_CMD_WRITE   0x38
 #define SFU_CMD_TIMEOUT 0xAA
 #define SFU_CMD_ERROR   0x55
+#define SFU_CMD_HWRESET 0x11
 
 static void sfu_command_info(uint8_t code, uint8_t *body, uint32_t size);
 static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size);
 static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size);
 
 static uint32_t write_addr = 0;
+
+void sfu_command_init()
+{
+	uint32_t temp;
+	packet_send(SFU_CMD_HWRESET, (void*)&temp, 0);
+}
 
 void sfu_command_timeout()
 {
@@ -122,6 +130,8 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 		for (uint32_t pos = 0; pos < LENGTH(sectors); pos++)
 		{
 			status = FLASH_EraseSector(sectors[pos], VoltageRange_3);
+			packet_send(SFU_CMD_ERASE_PART, (uint8_t *)&pos, sizeof(pos));
+
 			if (status != FLASH_COMPLETE) break;
 			if ((FLASH_SIZE == 512) && (sectors[pos] == FLASH_Sector_8)) break;
 		}
@@ -144,7 +154,7 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 	{
 		uint32_t body_addr = deserialize_uint32(body);
 
-		if (write_addr != 0)
+		if ((write_addr & 0xFF000000) != FLASH_BASE)
 		{
 			packet_send(SFU_CMD_ERROR, body, 0);
 			return;
@@ -153,7 +163,8 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 		uint32_t *word_data = (uint32_t*)&(body[4]);
 		uint32_t word_count = (size - 4) / 4;
 
-		printf("WR:\t%08X\t%08X\t%u\r", body_addr, write_addr, word_count);
+		//printf("WR:\t%08X\t%08X\t%u\r", body_addr, write_addr, word_count);
+
 		if ((body_addr == write_addr) && (word_count > 0))
 		{
 			FLASH_Status status = FLASH_BUSY;

@@ -1,6 +1,7 @@
 #include "stm32kiss.h"
 #include "usart_mini.h"
 #include "packet_receiver.h"
+#include "sfu_commands.h"
 
 //#define SIMPLE_TEST
 //#define TEST_PRINTF
@@ -10,8 +11,13 @@ void main(void)
 {
 	ticks_init();
 	usart_init();
-	recive_packets_init();
+
 	systick_on(1000);
+	__WFI();
+	__WFI();
+
+	recive_packets_init();
+	sfu_command_init();
 
 	while (1)
 	{

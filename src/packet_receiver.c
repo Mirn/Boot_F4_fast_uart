@@ -139,7 +139,7 @@ static bool recive_check_info()
 	packet_body = &packet_buf[4];
 
 	send_status("packet_check_info OK\r");
-	recive_check = recive_check_body;
+	recive_check = (packet_size > 0) ? recive_check_body : recive_check_crc;
 	return true;
 }
 

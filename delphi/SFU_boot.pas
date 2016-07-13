@@ -7,6 +7,7 @@ uses
 type
  tSFUboot_CommandSend = procedure (code:byte; cmd_body:pointer = nil; size:word = 0) of object;
  tSFUboot_EventLog=procedure(sender:tobject; msg:string) of object;
+ tSFUboot_func_Free=function:integer of object;
 
  tSFUboot = class
  private
@@ -17,11 +18,12 @@ type
   firmware_addr : cardinal;
   firmware_start : cardinal;
 
+  last_block_addr : cardinal;
+
   info_done : boolean;
   erase_done : boolean;
+  write_done : boolean;
   write_restart : boolean;
-
-  error_erase : boolean;
 
   send_timeout : cardinal;
 
@@ -33,32 +35,42 @@ type
   info_addr_from : cardinal;
   info_addr_run : cardinal;
 
-  procedure state_reset;
-
   procedure log(msg:string);
   procedure log_block_hex(msg:string; block:pbyte; count:integer);
   procedure log_block_ascii(msg:string; block:pbyte; count:integer);
 
   procedure recive_info(body:pbyte; count:word);
   procedure recive_erase(body:pbyte; count:word);
+  procedure recive_erase_part(body:pbyte; count:word);
   procedure recive_write(body:pbyte; count:word);
+  procedure recive_error(body:pbyte; count:word; msg:string);
 
+  procedure send_info;
   procedure send_erase(all:boolean = true; size:cardinal=$FFFFFFFF);
   procedure send_write;
+  procedure send_write_restart;
+  procedure send_write_multi;
 
   function firmware_load:boolean;
 
  public
   onLog : tSFUboot_EventLog;
+  func_free : tSFUboot_func_Free;
 
   firmware_fname : string;
 
   progress_max : cardinal;
   progress_pos : cardinal;
 
+  task_done : boolean;
+  task_error : boolean;
+
   constructor create(send: tSFUboot_CommandSend);
   procedure recive_command(code:byte; body:pbyte; count:word);
   procedure next_send;
+
+  procedure RESET;
+  procedure start;
  end;
 
 implementation
@@ -72,7 +84,11 @@ const
  SFU_CMD_WRITE = $38;
  SFU_CMD_TIMEOUT = $AA;
  SFU_CMD_ERROR   = $55;
+ SFU_CMD_HWRESET = $11;
+ SFU_CMD_ERASE_PART = $B3;
 
+const
+ WRITE_BLOCK_SIZE = 2048;
 
 function stm32_load_file(file_name:string; data:pointer; max_size:cardinal; readed:pcardinal) : boolean;
 var
@@ -122,7 +138,7 @@ end;
 constructor tSFUboot.create(send: tSFUboot_CommandSend);
 begin
  CommandSend := send;
- state_reset;
+ RESET();
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -253,11 +269,20 @@ begin
  log(' ');
 end;
 
+procedure tSFUboot.recive_erase_part(body:pbyte; count:word);
+begin
+ log('Erase part #' + inttostr(body_get_cardinal(body, count)));
+ send_timeout := GetTickCount + 2000;
+end;
+
 procedure tSFUboot.recive_erase(body:pbyte; count:word);
 begin
- error_erase := (count <> 4);
- if error_erase then
-  log('Erase ERROR')
+ if (count <> 4) then
+  begin
+   log('Erase ERROR');
+   RESET();
+   task_error := true;
+  end
  else
   log('Erase DONE');
  log(' ');
@@ -266,9 +291,12 @@ begin
   log('firmware_load(''' + firmware_fname + ''') OK')
  else
   log('ERROR: firmware_load(''' + firmware_fname + '''');
+ log(' ');
 
  progress_max := firmware_size;
  progress_pos := 0;
+
+ firmware_start := info_addr_from;
 
  erase_done := true;
  send_timeout := GetTickCount;
@@ -290,27 +318,40 @@ begin
  free := body_get_cardinal(body, count);
  rxed := body_get_cardinal(body, count);
 
- log('WR: 0x'+inttohex(addr, 8) + #9 + inttostr(free) + #9 + inttostr(rxed));
+ log('WR: 0x'+inttohex(addr, 8) + #9 + inttostr(free) + #9 + inttostr(rxed) + #9 + inttohex(last_block_addr, 8));
 
- if write_restart then
-  begin
-   write_restart := false;
-   firmware_addr := addr;
-   firmware_start := addr;
-   send_write;
-   send_write;
-   send_write;
-   send_write;
-   send_write;
-   send_write;
-   send_write;
-   send_write;
-  end
- else
+ if last_block_addr <> 0 then
+  if addr = last_block_addr then
+   begin
+    write_done := true;
+    progress_pos := progress_max;
+    log('Upload Done');
+   end;
+
+ if not write_done then
   begin
    progress_pos := addr - firmware_start;
-   send_write;
+
+   if write_restart then
+    begin
+     write_restart := false;
+     firmware_addr := addr;
+     last_block_addr := 0;
+
+     send_write_multi;
+    end
+   else
+    send_write;
   end;
+
+ send_timeout := GetTickCount + 150;
+end;
+
+procedure tSFUboot.recive_error(body:pbyte; count:word; msg:string);
+begin
+ RESET();
+ task_error := true;
+ log(msg);
 end;
 
 procedure tSFUboot.recive_command(code:byte; body:pbyte; count:word);
@@ -318,12 +359,20 @@ begin
  if code = SFU_CMD_INFO then recive_info(body, count) else
  if code = SFU_CMD_ERASE then recive_erase(body, count) else
  if code = SFU_CMD_WRITE then recive_write(body, count) else
- if code = SFU_CMD_TIMEOUT then log('ERROR: TIMEOUT') else
- if code = SFU_CMD_ERROR then log('ERROR') else
+ if code = SFU_CMD_TIMEOUT then recive_error(body, count, 'ERROR: command TIMEOUT') else
+ if code = SFU_CMD_HWRESET then recive_error(body, count, 'ERROR: command H/W RESET') else
+ if code = SFU_CMD_ERROR then recive_error(body, count, 'Flash ERROR command') else
+ if code = SFU_CMD_ERASE_PART then recive_erase_part(body, count) else
   log_block_hex('Error unknow command (' + inttohex(code, 2) + ')', body, count);
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
+
+procedure tSFUboot.send_info;
+begin
+ log('Send command: INFO');
+ CommandSend(SFU_CMD_INFO);
+end;
 
 procedure tSFUboot.send_erase(all:boolean = true; size:cardinal=$FFFFFFFF);
 var
@@ -343,16 +392,14 @@ begin
    info[2] := (size shr 16) and $FF;
    info[3] := (size shr 24) and $FF;
   end;
- log('Send command Erase');
+ log('Send command: Erase');
  CommandSend(SFU_CMD_ERASE, @info, sizeof(info));
- send_timeout := GetTickCount + 30000;
+ send_timeout := GetTickCount + 2000;
 end;
 
 procedure tSFUboot.send_write;
-const
- BLOCK_SIZE = 2048;
 var
- body : array[0 .. BLOCK_SIZE + 4 - 1] of byte;
+ body : array[0 .. WRITE_BLOCK_SIZE + 4 - 1] of byte;
  count : integer;
  pos : integer;
 begin
@@ -363,47 +410,110 @@ begin
 
  pos := firmware_addr - firmware_start;
 
- if BLOCK_SIZE > (firmware_size - pos) then
+ if WRITE_BLOCK_SIZE > (firmware_size - pos) then
   count := firmware_size - pos
  else
-  count := BLOCK_SIZE;
+  count := WRITE_BLOCK_SIZE;
+
+ if count < WRITE_BLOCK_SIZE then
+  if last_block_addr = 0 then
+   begin
+    if count = 0 then
+     last_block_addr := firmware_addr
+    else
+     last_block_addr := firmware_addr + count;
+   end;
 
  if count <= 0 then
-  begin
-   log('UpLoad Done');
-   exit;
-  end;
+  exit;
 
-// log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count));
+ //log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count));
  move(firmware_buf[pos], body[4], count);
- CommandSend(SFU_CMD_WRITE, @body[0], sizeof(body));
+ CommandSend(SFU_CMD_WRITE, @body[0], count + 4);
  firmware_addr := firmware_addr + count;
+end;
+
+procedure tSFUboot.send_write_multi;
+var
+ pos : integer;
+begin
+ for pos := 0 to 15 do
+  begin
+   if @func_free <> nil then
+    if func_free < (WRITE_BLOCK_SIZE*2) then
+     break;
+   send_write;
+  end;
+end;
+
+procedure tSFUboot.send_write_restart;
+begin
+ log('Send command: Write(RESART)');
+ write_restart := true;
+ CommandSend(SFU_CMD_WRITE);
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-procedure tSFUboot.state_reset;
+procedure tSFUboot.RESET();
 begin
+ task_done := true;
+ task_error := false;
+
  info_done := false;
  erase_done := false;
- write_restart := true;
+ write_done := false;
 
+ write_restart := false;
+
+ progress_pos := 0;
+ progress_max := 0;
+
+ firmware_size  := 0;
+ firmware_addr  := 0;
+ firmware_start := 0;
+
+ last_block_addr := 0;
+
+ write_restart := false;
+
+ send_timeout := 0;
+
+ FillChar(firmware_buf[0], sizeof(firmware_buf), $FF);
+ fillchar(info_chip_id, sizeof(info_chip_id), 0);
+
+ info_dev_type := 0;
+ info_dev_rev  := 0;
+ info_flash_size := 0;
+ info_boot_ver   := 0;
+ info_addr_from  := 0;
+ info_addr_run   := 0;
+end;
+
+procedure tSFUboot.start;
+begin
  send_timeout := GetTickCount;
+
+ RESET();
+
+ task_done := false;
+ task_error := false;
 end;
 
 procedure tSFUboot.next_send;
 begin
+ if task_done then exit;
  if GetTickCount < send_timeout then exit;
  send_timeout := GetTickCount + 100;
 
  if info_done = false then
-  CommandSend(SFU_CMD_INFO)
+  send_info
  else
   if erase_done = false then
    send_erase(true)
   else
-   if write_restart then
-     CommandSend(SFU_CMD_WRITE);
+   if write_done = false then
+    send_write_restart;
 end;
 
 end.
