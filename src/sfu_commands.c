@@ -11,6 +11,8 @@
 #include "usart_mini.h"
 #include "packet_receiver.h"
 
+#include "stm32f4xx_crc_inline.h"
+
 #define SFU_VER_L 0
 #define SFU_VER_H 1
 
@@ -18,6 +20,7 @@
 #define SFU_CMD_INFO    0x97
 #define SFU_CMD_ERASE   0xC5
 #define SFU_CMD_WRITE   0x38
+#define SFU_CMD_START   0x26
 #define SFU_CMD_TIMEOUT 0xAA
 #define SFU_CMD_WRERROR 0x55
 #define SFU_CMD_HWRESET 0x11
@@ -25,6 +28,7 @@
 static void sfu_command_info(uint8_t code, uint8_t *body, uint32_t size);
 static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size);
 static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size);
+static void sfu_command_start(uint8_t code, uint8_t *body, uint32_t size);
 
 static uint32_t write_addr = 0;
 
@@ -46,6 +50,7 @@ void sfu_command_parser(uint8_t code, uint8_t *body, uint32_t size)
 	if (code == SFU_CMD_INFO)  sfu_command_info(code, body, size);
 	if (code == SFU_CMD_ERASE) sfu_command_erase(code, body, size);
 	if (code == SFU_CMD_WRITE) sfu_command_write(code, body, size);
+	if (code == SFU_CMD_START) sfu_command_start(code, body, size);
 }
 
 ///////////////////////////////////////
@@ -199,4 +204,40 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 	serialize_uint32(body + 8, count);
 
 	packet_send(code, body, 12);
+}
+
+static void sfu_command_start(uint8_t code, uint8_t *body, uint32_t size)
+{
+	if (size != 4) return;
+
+	uint32_t *from = (uint32_t*)MAIN_START_FROM;
+	uint32_t count = (write_addr - MAIN_START_FROM);
+
+	CRC_ResetDR_inline();
+	uint32_t crc = CRC_CalcBlockCRC_inline(from, count / 4);
+	uint32_t need = deserialize_uint32(body);
+
+	serialize_uint32(body + 0, (uint32_t)from);
+	serialize_uint32(body + 4, count);
+	serialize_uint32(body + 8, crc);
+
+	packet_send(code, body, 12);
+
+	if (crc == need)
+	{
+		write_addr = 0;
+
+		send_str("CRC OK\r");
+
+		uint32_t *boot_from = (uint32_t*)MAIN_RUN_FROM;
+		if ((boot_from[0] >> 24) != (SRAM_BASE >> 24)) return send_str("SRAM ERROR\r");
+		if (((boot_from[1] >> 24) != (FLASH_BASE >> 24)) && (boot_from[1] > MAIN_RUN_FROM)) return send_str("FLASH ERROR\r");
+
+		send_str("CONTEXT OK\r\r");
+
+		__set_MSP(boot_from[0]);
+		(*(void (*)())(boot_from[1]))();
+	}
+	else
+		send_str("CRC != NEED\r");
 }

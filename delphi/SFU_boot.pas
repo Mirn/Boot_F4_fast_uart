@@ -16,14 +16,18 @@ type
 
   firmware_buf : array[0.. $400000 - 1] of byte;
   firmware_size : cardinal;
+  firmware_crc  : cardinal;
   firmware_addr : cardinal;
   firmware_start : cardinal;
 
   final_block_addr : cardinal;
 
   info_done : boolean;
+  load_done : boolean;
   erase_done : boolean;
   write_done : boolean;
+  start_done : boolean;
+
   write_restart : boolean;
 
   send_timeout : cardinal;
@@ -46,9 +50,10 @@ type
   procedure log_block_ascii(msg:string; block:pbyte; count:integer);
 
   procedure recive_info(body:pbyte; count:word);
-  procedure recive_erase(body:pbyte; count:word);
-  procedure recive_erase_part(body:pbyte; count:word);
+  procedure recive_erase_done(body:pbyte; count:word);
+  procedure recive_erase_page(body:pbyte; count:word);
   procedure recive_write(body:pbyte; count:word);
+  procedure recive_start(body:pbyte; count:word);
   procedure recive_hw_reset(msg:string);
 
   procedure error_stop(msg:string);
@@ -58,8 +63,9 @@ type
   procedure send_write;
   procedure send_write_restart;
   procedure send_write_multi(count:integer);
+  procedure send_start;
 
-  function firmware_load:boolean;
+  procedure firmware_load;
 
  public
   onLog : tSFUboot_EventLog;
@@ -87,13 +93,15 @@ type
 implementation
 
 uses
-  SysUtils, windows, math;
+  SysUtils, windows, math,
+  crcunit;
 
 const
  SFU_CMD_INFO  = $97;
  SFU_CMD_ERASE = $C5;
- SFU_CMD_ERASE_PART = $B3;
+ SFU_CMD_PAGE  = $B3;
  SFU_CMD_WRITE = $38;
+ SFU_CMD_START = $26;
 
  SFU_CMD_TIMEOUT = $AA;
  SFU_CMD_WRERROR = $55;
@@ -155,23 +163,35 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-function tSFUboot.firmware_load:boolean;
+procedure tSFUboot.firmware_load;
 var
  readed : cardinal;
 begin
- result := false;
  firmware_size := 0;
- if firmware_fname = '' then exit;
 
  FillChar(firmware_buf[0], sizeof(firmware_buf), $FF);
 
  readed := 0;
- if not stm32_load_file(firmware_fname, @firmware_buf[0], sizeof(firmware_buf), @readed) then exit;
+ if not stm32_load_file(firmware_fname, @firmware_buf[0], sizeof(firmware_buf), @readed) then
+  begin
+   error_stop('ERROR: firmware_load(' + firmware_fname + ')');
+   exit;
+  end;
  if readed = 0 then exit;
 
  readed := (readed + 3) and $FFFFFFFC;
  firmware_size := readed;
- result := true;
+ firmware_crc := crc_stm32(pcardinal(@firmware_buf[0]), firmware_size div 4);
+
+ log('firmware_load(''' + firmware_fname + ''') OK');
+ log('firmware_size: ' + IntToStr(firmware_size));
+ log('firmware_from: 0x' + IntToHex(info_addr_from, 8));
+ log('firmware_to  : 0x' + IntToHex(info_addr_from + firmware_size, 8));
+ log('firmware_crc : 0x' + IntToHex(firmware_crc, 8));
+ log(' ');
+
+ load_done := true;
+ send_timeout := GetTickCount;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -254,9 +274,39 @@ end;
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
+procedure tSFUboot.recive_start(body:pbyte; count:word);
+var
+ crc_from  : cardinal;
+ crc_size  : cardinal;
+ crc_value : cardinal;
+begin
+ if count <> 12 then
+  begin
+   error_stop('ERROR: recive_start: count <> 12');
+   exit;
+  end;
+
+ crc_from  := body_get_cardinal(body, count);
+ crc_size  := body_get_cardinal(body, count);
+ crc_value := body_get_cardinal(body, count);
+
+ log('Command: Check and START');
+ log('Crc_from  : 0x' + inttohex(crc_from, 8));
+ log('crc_to    : 0x' + inttohex(crc_from + crc_size, 8));
+ log('crc_value : 0x' + inttohex(crc_value, 8));
+ log(' ');
+
+ start_done := true;
+ send_timeout := GetTickCount;
+end;
+
 procedure tSFUboot.recive_info(body:pbyte; count:word);
 begin
- if count <> 28 then exit;
+ if count <> 28 then
+  begin
+   error_stop('ERROR: recive_info: count <> 28');
+   exit;
+  end;
 
  body_get_block(body, count, @info_chip_id[0], sizeof(info_chip_id));
 
@@ -268,8 +318,6 @@ begin
  info_addr_from := body_get_cardinal(body, count);
  info_addr_run  := body_get_cardinal(body, count);
 
- info_done := true;
-
  log('Command: INFO');
  log_block_hex('ChipID: ', @info_chip_id[0], sizeof(info_chip_id));
  log_block_ascii('ChipID: ', @info_chip_id[0], sizeof(info_chip_id));
@@ -280,15 +328,20 @@ begin
  log('Addr from : 0x' + inttohex(info_addr_from, 8));
  log('Addr run  : 0x' + inttohex(info_addr_run, 8));
  log(' ');
+
+ firmware_start := info_addr_from;
+
+ info_done := true;
+ send_timeout := GetTickCount;
 end;
 
-procedure tSFUboot.recive_erase_part(body:pbyte; count:word);
+procedure tSFUboot.recive_erase_page(body:pbyte; count:word);
 begin
  log('Erase part #' + inttostr(body_get_cardinal(body, count)));
  send_timeout := GetTickCount + 2000;
 end;
 
-procedure tSFUboot.recive_erase(body:pbyte; count:word);
+procedure tSFUboot.recive_erase_done(body:pbyte; count:word);
 begin
  if (count <> 4) then
   begin
@@ -297,15 +350,6 @@ begin
   end
  else
   log('Erase DONE');
- log(' ');
-
- if firmware_load then
-  log('firmware_load(''' + firmware_fname + ''') OK')
- else
-  begin
-   error_stop('ERROR: firmware_load(' + firmware_fname + ')');
-   exit;
-  end;
  log(' ');
 
  progress_max := firmware_size;
@@ -341,7 +385,8 @@ begin
    begin
     write_done := true;
     progress_pos := progress_max;
-    log('Upload Done');
+    log('Write Done');
+    log(' ');
    end;
 
  if not write_done then
@@ -380,7 +425,8 @@ end;
 procedure tSFUboot.error_stop(msg:string);
 begin
  RESET();
- task_error := true;
+ if not task_done then
+  task_error := true;
  log(msg);
 end;
 
@@ -394,13 +440,15 @@ end;
 
 procedure tSFUboot.recive_command(code:byte; body:pbyte; count:word);
 begin
- if code = SFU_CMD_INFO then recive_info(body, count) else
- if code = SFU_CMD_ERASE then recive_erase(body, count) else
+ if code = SFU_CMD_INFO  then recive_info(body, count) else
+ if code = SFU_CMD_ERASE then recive_erase_done(body, count) else
+ if code = SFU_CMD_PAGE  then recive_erase_page(body, count) else
  if code = SFU_CMD_WRITE then recive_write(body, count) else
- if code = SFU_CMD_TIMEOUT then error_stop('ERROR: command TIMEOUT') else
- if code = SFU_CMD_HWRESET then recive_hw_reset('ERROR: command H/W RESET') else
- if code = SFU_CMD_WRERROR then error_stop('ERROR: Flash write') else
- if code = SFU_CMD_ERASE_PART then recive_erase_part(body, count) else
+ if code = SFU_CMD_START then recive_start(body, count) else
+
+ if code = SFU_CMD_TIMEOUT then error_stop('ERROR command: TIMEOUT') else
+ if code = SFU_CMD_HWRESET then recive_hw_reset('ERROR command: H/W RESET') else
+ if code = SFU_CMD_WRERROR then error_stop('ERROR command: Flash write') else
   log_block_hex('Error unknow command (' + inttohex(code, 2) + ')', body, count);
 end;
 
@@ -492,6 +540,12 @@ begin
  CommandSend(SFU_CMD_WRITE);
 end;
 
+procedure tSFUboot.send_start;
+begin
+ log('Send command: Check and START');
+ CommandSend(SFU_CMD_START, @firmware_crc, sizeof(firmware_crc));
+end;
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 procedure tSFUboot.RESET();
@@ -507,8 +561,10 @@ begin
  task_error := false;
 
  info_done := false;
+ load_done := false;
  erase_done := false;
  write_done := false;
+ start_done := false;
 
  write_restart := false;
 
@@ -571,14 +627,18 @@ begin
  if GetTickCount < send_timeout then exit;
  send_timeout := GetTickCount + 100;
 
- if info_done = false then
-  send_info
- else
-  if erase_done = false then
-   send_erase(true)
-  else
-   if write_done = false then
-    send_write_restart;
+ if info_done  = false then send_info() else
+ if load_done  = false then firmware_load() else
+ if erase_done = false then send_erase(true) else
+ if write_done = false then send_write_restart() else
+ if start_done = false then send_start() else
+  begin
+   RESET;
+   progress_max := 1;
+   progress_pos := 1;
+   log('Task DONE');
+   task_done := true;
+  end;
 end;
 
 end.

@@ -45,20 +45,20 @@ uint32_t packet_cnt = 0;
 
 #define PACKET_MAX_SIZE (sizeof(packet_buf) - 8) //header 4 bytes + crc 4 bytes
 
-uint8_t  packet_code = 0;
-uint8_t  packet_code_n = 0;
-uint16_t packet_size = 0;
-uint8_t *packet_body = NULL;
-uint32_t packet_crc = 0;
+static uint8_t  packet_code = 0;
+static uint8_t  packet_code_n = 0;
+static uint16_t packet_size = 0;
+static uint8_t *packet_body = NULL;
+static uint32_t packet_crc = 0;
 
-uint32_t stat_normals = 0;
+static uint32_t stat_normals = 0;
 
-uint32_t stat_error_timeout = 0;
-uint32_t stat_error_overfull = 0;
-uint32_t stat_error_start = 0;
-uint32_t stat_error_code = 0;
-uint32_t stat_error_size = 0;
-uint32_t stat_error_crc = 0;
+static uint32_t stat_error_timeout = 0;
+static uint32_t stat_error_overfull = 0;
+static uint32_t stat_error_start = 0;
+static uint32_t stat_error_code = 0;
+static uint32_t stat_error_size = 0;
+static uint32_t stat_error_crc = 0;
 
 void recive_packets_init()
 {
