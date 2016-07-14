@@ -9,6 +9,8 @@
 #include "stm32f4xx_usart.h"
 #endif
 
+extern uint32_t rx_overfulls;
+extern uint32_t rx_count_max;
 
 void usart_init();
 

@@ -19,7 +19,7 @@
 #define SFU_CMD_ERASE   0xC5
 #define SFU_CMD_WRITE   0x38
 #define SFU_CMD_TIMEOUT 0xAA
-#define SFU_CMD_ERROR   0x55
+#define SFU_CMD_WRERROR 0x55
 #define SFU_CMD_HWRESET 0x11
 
 static void sfu_command_info(uint8_t code, uint8_t *body, uint32_t size);
@@ -145,7 +145,7 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 		}
 	}
 
-	packet_send(SFU_CMD_ERROR, body, 0);
+	packet_send(code, body, 0);
 }
 
 static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
@@ -156,7 +156,7 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 
 		if ((write_addr & 0xFF000000) != FLASH_BASE)
 		{
-			packet_send(SFU_CMD_ERROR, body, 0);
+			packet_send(SFU_CMD_WRERROR, body, 0);
 			return;
 		}
 
@@ -185,7 +185,7 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 
 			if (status != FLASH_COMPLETE)
 			{
-				packet_send(SFU_CMD_ERROR, body, 0);
+				packet_send(SFU_CMD_WRERROR, body, 0);
 				write_addr = 0;
 			}
 		}

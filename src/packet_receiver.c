@@ -25,6 +25,8 @@
 #define PACKET_SIGN_RX 0x817EA345
 #define PACKET_SIGN_TX 0x45A37E81
 
+#define TIMEOUT_mS 500
+
 #define TIMEOUT_RESTART DWT_CYCCNT
 
 static bool recive_check_start();
@@ -232,16 +234,20 @@ void recive_packets_print_stat()
 		return;// test_send();
 	last_time = now_time;
 
-	printf("%i\t", stat_normals);
+	printf("%i\t", rx_overfulls);
+	printf("%i\t", rx_count_max);
 	printf("\t");
 	printf("%i\t", stat_error_timeout);
 	printf("%i\t", stat_error_overfull);
 	printf("\t");
+	printf("%i\t", stat_normals);
 	printf("%i\t", stat_error_start);
 	printf("%i\t", stat_error_code);
 	printf("%i\t", stat_error_size);
 	printf("%i\t", stat_error_crc);
 	printf("\r");
+
+	rx_count_max = 0;
 	//test_send();
 #endif
 }
@@ -250,7 +256,7 @@ void recive_packets_print_stat()
 
 void recive_packets_worker()
 {
-	const uint32_t time_limit = (SystemCoreClock / 1000) * 200;
+	const uint32_t time_limit = (SystemCoreClock / 1000) * TIMEOUT_mS;
 	if ((DWT_CYCCNT - packet_timeout) > time_limit)
 	{
 		stat_error_timeout++;

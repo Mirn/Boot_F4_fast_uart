@@ -23,6 +23,7 @@ type
     Timer100ms: TTimer;
     StopCheckBox: TCheckBox;
     Button1: TButton;
+    SFUboot_StatusLabel: TLabel;
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Timer1mSTimer(Sender: TObject);
@@ -83,9 +84,10 @@ begin
 
  boot := tSFUboot.create(sfu.send_command);
  boot.onLog := self.onLogBoot;
- //boot.firmware_fname := 'E:\gsm\lab\Firmware\SPGateM_pcb16-4lay_ver 1.21 (MR) codec fix.bin';
- boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\added.bin';
- boot.func_free := device.tx_free_bytes;
+ boot.firmware_fname := 'E:\gsm\lab\Firmware\SPGateM_pcb16-4lay_ver 1.21 (MR) codec fix.bin';
+// boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\added.bin';
+ boot.tx_free_func := device.tx_free_bytes;
+ boot.tx_reset_func := device.TX_fifo_blocks.reset;
 
  sfu.onCommand := boot.recive_command;
 
@@ -216,6 +218,13 @@ begin
     '  size: ' + inttostr(sfu.stat_error_size) +
     '  crc: ' + inttostr(sfu.stat_error_crc);
 
+ SFUboot_StatusLabel.Caption := boot.task_info;
+ if (boot.task_done = false) and (boot.task_error = false) then SFUboot_StatusLabel.Font.Color := rgb(  0,   0,   0);
+ if (boot.task_done =  true) and (boot.task_error = false) then SFUboot_StatusLabel.Font.Color := rgb(  0, 100,   0);
+ if (boot.task_done =  true) and (boot.task_error =  true) then SFUboot_StatusLabel.Font.Color := rgb(200, 100, 100);
+ if (boot.task_done = false) and (boot.task_error =  true) then SFUboot_StatusLabel.Font.Color := rgb(200,   0,   0);
+
+
  ProgressBar1.Max := boot.progress_max;
  ProgressBar1.Position := boot.progress_pos;
 end;
@@ -223,7 +232,7 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 begin
  milliseconds_start(ms_timer);
- boot.start;
+ boot.start(true);
 end;
 
 end.

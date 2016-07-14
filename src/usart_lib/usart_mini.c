@@ -34,6 +34,9 @@ uint8_t rx_buffer[0x20000]  __attribute__ ((section (".usart_mini_rx_buffer"), u
 volatile uint32_t rx_pos_write = 0;
 volatile uint32_t rx_pos_read  = 0;
 
+uint32_t rx_overfulls = 0;
+uint32_t rx_count_max = 0;
+
 void usart_init()
 {
 #ifdef STM32F10X_LD_VL
@@ -138,6 +141,17 @@ void USART1_IRQHandler(void)
 bool recive_byte(uint8_t *rx_data)
 {
 	if (rx_pos_read == rx_pos_write) return false;
+
+	uint32_t count = recive_count();
+	if (rx_count_max < count)
+		rx_count_max = count;
+
+	if (count >= sizeof(rx_buffer))
+	{
+		rx_pos_read = rx_pos_write - sizeof(rx_buffer) - 1;
+		rx_overfulls++;
+	}
+
 	*rx_data = rx_buffer[rx_pos_read % sizeof(rx_buffer)];
 	rx_pos_read++;
 	return true;

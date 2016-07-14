@@ -2,7 +2,7 @@ object Form1: TForm1
   Left = 192
   Top = 118
   Width = 1710
-  Height = 831
+  Height = 848
   Caption = 'Form1'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,7 @@ object Form1: TForm1
   OnShow = FormShow
   DesignSize = (
     1700
-    799)
+    816)
   PixelsPerInch = 96
   TextHeight = 13
   object StatLabel: TLabel
@@ -23,6 +23,21 @@ object Form1: TForm1
     Top = 744
     Width = 360
     Height = 18
+    Anchors = [akLeft, akBottom]
+    Caption = 'StatLabelStatLabelStatLabelStatLabel'
+    Font.Charset = RUSSIAN_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object SFUboot_StatusLabel: TLabel
+    Left = 8
+    Top = 792
+    Width = 360
+    Height = 18
+    Anchors = [akLeft, akBottom]
     Caption = 'StatLabelStatLabelStatLabelStatLabel'
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -35,7 +50,7 @@ object Form1: TForm1
     Left = 8
     Top = 8
     Width = 865
-    Height = 725
+    Height = 726
     Anchors = [akLeft, akTop, akBottom]
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -50,8 +65,8 @@ object Form1: TForm1
     Left = 880
     Top = 8
     Width = 810
-    Height = 725
-    Anchors = [akLeft, akTop, akRight, akBottom]
+    Height = 726
+    Anchors = [akLeft, akTop, akBottom]
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
     Font.Height = -16
@@ -66,6 +81,7 @@ object Form1: TForm1
     Top = 768
     Width = 353
     Height = 17
+    Anchors = [akLeft, akBottom]
     Min = 0
     Max = 100
     Smooth = True
@@ -80,8 +96,8 @@ object Form1: TForm1
     TabOrder = 3
   end
   object Button1: TButton
-    Left = 1504
-    Top = 736
+    Left = 384
+    Top = 768
     Width = 75
     Height = 25
     Caption = 'START'
