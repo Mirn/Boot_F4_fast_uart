@@ -221,7 +221,6 @@ begin
  ProgressBar1.Position := boot.progress_pos;
 end;
 
-
 procedure TForm1.Button1Click(Sender: TObject);
 begin
  milliseconds_start(ms_timer);
