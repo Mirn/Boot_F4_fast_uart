@@ -8,17 +8,18 @@ File_5=SourceModule,'E:\gsm\src\Gate_Console\uSTR_Params.pas',0,1,24,120,42,0,0
 File_6=SourceModule,'E:\gsm\src\Gate_Console\uGateConsole_main.pas',0,1,1777,40,1806,1,0
 File_7=SourceModule,'E:\tel_trube\src\trube_config\ftdicleint.pas',0,1,1,12,4,0,0
 File_8=SourceModule,'E:\tel_trube\src\trube_config\sound.pas',0,1,73,1,106,0,0
-File_9=SourceModule,'E:\tel_trube\src\trube_config\oscilogramm.pas',0,1,46,1,68,0,0
 
 [Modules]
 Module0=E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_boot.pas
 Module1=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas
-Module2=E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_cmd.pas
-Module3=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
-Module4=E:\bootloader\src\Boot_F4_fast_uart\delphi\LinkClient.pas
-Module5=E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas
-Module6=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTest.dpr
-Count=7
+Module2=E:\bootloader\src\Boot_F4_fast_uart\delphi\u_millesecond_timer.pas
+Module3=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTest.dpr
+Module4=E:\bootloader\src\Boot_F4_fast_uart\delphi\fifo.pas
+Module5=E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_cmd.pas
+Module6=E:\bootloader\src\Boot_F4_fast_uart\delphi\LinkClient.pas
+Module7=E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas
+Module8=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
+Count=9
 EditWindowCount=1
 
 [E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_boot.pas]
@@ -29,14 +30,24 @@ FormOnTop=0
 [E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas]
 ModuleType=SourceModule
 FormState=1
-FormOnTop=1
+FormOnTop=0
 
-[E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_cmd.pas]
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\u_millesecond_timer.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas]
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTest.dpr]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\fifo.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_cmd.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
@@ -51,7 +62,7 @@ ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTest.dpr]
+[E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
@@ -61,8 +72,8 @@ FormState=0
 FormOnTop=0
 
 [EditWindow0]
-ViewCount=7
-CurrentView=2
+ViewCount=9
+CurrentView=3
 View0=0
 View1=1
 View2=2
@@ -70,6 +81,8 @@ View3=3
 View4=4
 View5=5
 View6=6
+View7=7
+View8=8
 CodeExplorer=CodeExplorer@EditWindow0
 MessageView=MessageView@EditWindow0
 Create=1
@@ -87,57 +100,71 @@ LeftPanelSize=140
 LeftPanelClients=CodeExplorer@EditWindow0
 LeftPanelData=000004000000000000000000000000000000000000000000000100000000000000000C000000436F64654578706C6F726572FFFFFFFF
 RightPanelSize=0
-BottomPanelSize=0
+BottomPanelSize=52
 BottomPanelClients=MessageView@EditWindow0
-BottomPanelData=00000400010000000B0000004D65737361676556696577C206000000000000023400000000000000010000000000000000000000000100000000C2060000000000000100000000C2060000000000000100000000C2060000000000000100000000C2060000000000000100000000C20600000B0000004D65737361676556696577FFFFFFFF
+BottomPanelData=0000040000000000C206000000000000023400000000000000010000000000000000000000000100000000C2060000000000000100000000C2060000000000000100000000C2060000000000000100000000C2060000000000000100000000C2060000000000000100000000C20600000B0000004D65737361676556696577FFFFFFFF
 
 [View0]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTestFormUnit1.pas
-CursorX=21
-CursorY=171
-TopLine=132
+CursorX=32
+CursorY=221
+TopLine=203
 LeftCol=1
 
 [View1]
-Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_cmd.pas
-CursorX=31
-CursorY=227
-TopLine=236
+Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\u_millesecond_timer.pas
+CursorX=63
+CursorY=30
+TopLine=13
 LeftCol=1
 
 [View2]
-Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_boot.pas
-CursorX=45
-CursorY=367
-TopLine=355
+Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_cmd.pas
+CursorX=1
+CursorY=253
+TopLine=242
 LeftCol=1
 
 [View3]
-Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTest.dpr
-CursorX=55
-CursorY=5
-TopLine=1
+Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\SFU_boot.pas
+CursorX=3
+CursorY=69
+TopLine=53
 LeftCol=1
 
 [View4]
+Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\FastTest.dpr
+CursorX=63
+CursorY=14
+TopLine=1
+LeftCol=1
+
+[View5]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\CRCunit.pas
 CursorX=1
 CursorY=89
 TopLine=56
 LeftCol=1
 
-[View5]
+[View6]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\COMclient.pas
 CursorX=41
 CursorY=251
 TopLine=234
 LeftCol=1
 
-[View6]
+[View7]
 Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\LinkClient.pas
-CursorX=51
-CursorY=8
-TopLine=1
+CursorX=1
+CursorY=818
+TopLine=792
+LeftCol=1
+
+[View8]
+Module=E:\bootloader\src\Boot_F4_fast_uart\delphi\fifo.pas
+CursorX=1
+CursorY=82
+TopLine=56
 LeftCol=1
 
 [Watches]
@@ -432,18 +459,18 @@ State=0
 Left=0
 Top=12
 Width=140
-Height=1120
+Height=1065
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=140
-ClientHeight=1120
+ClientHeight=1065
 TBDockHeight=305
 LRDockWidth=140
 Dockable=1
 
 [MessageView@EditWindow0]
 Create=1
-Visible=0
+Visible=1
 State=0
 Left=12
 Top=0

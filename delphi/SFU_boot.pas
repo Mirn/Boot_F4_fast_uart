@@ -66,6 +66,7 @@ type
   task_error : boolean;
 
   constructor create(send: tSFUboot_CommandSend);
+  
   procedure recive_command(code:byte; body:pbyte; count:word);
   procedure next_send;
 

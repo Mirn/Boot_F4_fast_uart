@@ -19,7 +19,7 @@
 
 # Thumbnails
 ._*
-delphi/FastTest.dsk
+/delphi/FastTest.dsk
 
 
 # Windows
@@ -40,4 +40,4 @@ $RECYCLE.BIN/
 
 *.dsk
 
-/Release
+
