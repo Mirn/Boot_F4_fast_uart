@@ -181,8 +181,7 @@ begin
    rand_array(@body[0], size);
 
    sfu.send_command(code, @body[0], size);
-  end;}
-
+  end;}          
 end;
 
 procedure TForm1.Timer100msTimer(Sender: TObject);

@@ -4,30 +4,12 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../src/kiss/src/stm32kiss_adc.c \
-../src/kiss/src/stm32kiss_button.c \
-../src/kiss/src/stm32kiss_dac.c \
-../src/kiss/src/stm32kiss_fifo.c \
-../src/kiss/src/stm32kiss_gpio.c \
-../src/kiss/src/stm32kiss_startup.c \
 ../src/kiss/src/stm32kiss_ticks.c 
 
 OBJS += \
-./src/kiss/src/stm32kiss_adc.o \
-./src/kiss/src/stm32kiss_button.o \
-./src/kiss/src/stm32kiss_dac.o \
-./src/kiss/src/stm32kiss_fifo.o \
-./src/kiss/src/stm32kiss_gpio.o \
-./src/kiss/src/stm32kiss_startup.o \
 ./src/kiss/src/stm32kiss_ticks.o 
 
 C_DEPS += \
-./src/kiss/src/stm32kiss_adc.d \
-./src/kiss/src/stm32kiss_button.d \
-./src/kiss/src/stm32kiss_dac.d \
-./src/kiss/src/stm32kiss_fifo.d \
-./src/kiss/src/stm32kiss_gpio.d \
-./src/kiss/src/stm32kiss_startup.d \
 ./src/kiss/src/stm32kiss_ticks.d 
 
 

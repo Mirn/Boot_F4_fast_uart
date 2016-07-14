@@ -161,7 +161,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry excluding="kiss/src/stm32kiss_startup.c|kiss/src/stm32kiss_gpio.c|kiss/src/stm32kiss_fifo.c|kiss/src/stm32kiss_dac.c|kiss/src/stm32kiss_button.c|kiss/src/stm32kiss_adc.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

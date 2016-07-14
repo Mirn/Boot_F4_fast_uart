@@ -75,11 +75,11 @@ typedef struct
 
 #pragma GCC diagnostic ignored "-Wformat"
 
-#include "stm32kiss_adc.h"
-#include "stm32kiss_dac.h"
-#include "stm32kiss_gpio.h"
+//#include "stm32kiss_adc.h"
+//#include "stm32kiss_dac.h"
+//#include "stm32kiss_gpio.h"
 #include "stm32kiss_ticks.h"
-#include "stm32kiss_button.h"
+//#include "stm32kiss_button.h"
 //#include "stm32kiss_fifo.h"
 //#include "stm32kiss_dma_usarts.h"
 
