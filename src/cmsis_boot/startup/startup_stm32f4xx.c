@@ -135,14 +135,14 @@ extern unsigned long _sdata;     /*!< Start address for the .data section     */
 extern unsigned long _edata;     /*!< End address for the .data section       */
 extern unsigned long _sbss;      /*!< Start address for the .bss section      */
 extern unsigned long _ebss;      /*!< End address for the .bss section        */
-extern void _eram;               /*!< End address for ram                     */
+//extern void _eram;               /*!< End address for ram                     */
 
 
 /*----------Function prototypes-----------------------------------------------*/
 extern int main(void);           /*!< The entry point for the application.    */
 //extern void SystemInit(void);    /*!< Setup the microcontroller system(CMSIS) */
 void Default_Reset_Handler(void);   /*!< Default reset handler                */
-static void Default_Handler(void) __attribute__( ( naked ) );  /*!< Default exception handler            */
+static void Default_Handler(void) __attribute__( ( naked ) ) __attribute__ ((used));  /*!< Default exception handler            */
 
 
 /**
@@ -256,9 +256,9 @@ void (* const g_pfnVectors[])(void) =
   
 };
 
-void SystemCoreClockUpdate();
+//void SystemCoreClockUpdate();
 void SystemInit(void);
-void kiss_startup_init();
+//void kiss_startup_init();
 
 /**
   * @brief  This is the code that gets called when the processor first
@@ -428,6 +428,9 @@ static void Default_Handler(void)
 	while (1)
 		;
 }
+
+void *dummy = Default_Handler;
+
 #else
 /* The fault handler implementation calls a function called
 prvGetRegistersFromStack(). */

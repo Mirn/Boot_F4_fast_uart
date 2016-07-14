@@ -5,6 +5,7 @@
 *.d
 *.obj
 *.dcu
+*.dsk
 
 # Precompiled Headers
 *.gch
@@ -19,7 +20,6 @@
 
 # Thumbnails
 ._*
-/delphi/FastTest.dsk
 
 
 # Windows
@@ -37,7 +37,4 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
-
-*.dsk
-
 

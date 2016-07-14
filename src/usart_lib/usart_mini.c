@@ -29,7 +29,8 @@
 
 #define USART_BOD 500000
 
-uint8_t rx_buffer[0x10000] = {0};
+uint8_t rx_buffer[0x20000]  __attribute__ ((section (".usart_mini_rx_buffer"), used));
+
 volatile uint32_t rx_pos_write = 0;
 volatile uint32_t rx_pos_read  = 0;
 
