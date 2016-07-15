@@ -199,6 +199,7 @@ type
   stm32_chip_id : tSTM32_info;
   stm32_chip_id_readed : boolean;
 
+  task_open_with_reset : boolean;
   no_activate : boolean;
 
   evWR_loaded : tCOMClient_evWRLoad;
@@ -1521,8 +1522,17 @@ go_work:
     end;
   end;
 
+ if task_open_with_reset then
+  begin
+   PurgeComm(handle, PURGE_RXCLEAR);
+   PurgeComm(handle, PURGE_RXABORT);
+   com_read_data(nil, 1000, nil, 10);
+   PurgeComm(handle, PURGE_RXABORT);
+   PurgeComm(handle, PURGE_RXCLEAR);
+  end;
+
  zero_close:=false;
- if (stm32_task_enable = false) or no_activate then
+ if (stm32_task_enable = false) or no_activate or task_open_with_reset then
   result := true
  else
   FileClose(handle);

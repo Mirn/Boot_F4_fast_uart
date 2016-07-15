@@ -4,9 +4,10 @@ interface
 
 type
  tSFUboot_CommandSend = procedure (code:byte; cmd_body:pointer = nil; size:word = 0) of object;
- tSFUboot_EventLog=procedure(sender:tobject; msg:string) of object;
- tSFUboot_tx_free_func=function:integer of object;
- tSFUboot_tx_reset_func=procedure of object;
+ tSFUboot_EventLog = procedure(sender:tobject; msg:string) of object;
+ tSFUboot_tx_free_func = function:integer of object;
+ tSFUboot_tx_reset_func = procedure of object;
+ tSFUboot_Event = procedure of object;
 
  tSFUboot = class
  private
@@ -67,6 +68,9 @@ type
 
  public
   onLog : tSFUboot_EventLog;
+  onERROR: tSFUboot_Event;
+  onDone: tSFUboot_Event;
+
   tx_free_func : tSFUboot_tx_free_func;
   tx_reset_func : tSFUboot_tx_reset_func;
 
@@ -342,15 +346,17 @@ begin
   end;
 
  last_writed_addr := addr;
- send_timeout := GetTickCount + 150;
+ send_timeout := GetTickCount + 200;
 end;
 
 procedure tSFUboot.error_stop(msg:string);
 begin
  RESET();
- if not task_done then
-  task_error := true;
+ task_error := true;
  log(msg);
+
+ if @onError <> nil then
+  onError();
 end;
 
 procedure tSFUboot.recive_hw_reset(msg:string);
@@ -467,6 +473,7 @@ begin
  log('Send command: Write(RESART)');
  write_restart := true;
  CommandSend(SFU_CMD_WRITE);
+ send_timeout := GetTickCount + 500;
 end;
 
 procedure tSFUboot.send_start;
@@ -540,6 +547,12 @@ begin
 
  opt_fast_erase := fast_erase;
 
+ log(' ');
+ log('New TASK');
+ log('Firmware: ' + firmware_fname);
+ log('opt_fast_erase: ' + BoolToStr(opt_fast_erase, true));
+ log(' ');
+
  self.RESET();
 
  if time_measure then
@@ -563,10 +576,15 @@ begin
  if start_done = false then send_start() else
   begin
    RESET;
+
    progress_max := 1;
    progress_pos := 1;
+
    log('Task DONE');
    task_done := true;
+
+   if @onDone <> nil then
+    onDone();
   end;
 end;
 

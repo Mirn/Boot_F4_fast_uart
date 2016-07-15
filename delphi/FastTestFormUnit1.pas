@@ -11,7 +11,8 @@ uses
   SFU_cmd,
   SFU_boot,
   u_millesecond_timer,
-  fifo;
+  fifo,
+  Unit_Win7Taskbar;
 
 type
   TForm1 = class(TForm)
@@ -19,17 +20,25 @@ type
     Timer1mS: TTimer;
     MemoCMD: TMemo;
     StatLabel: TLabel;
-    ProgressBar1: TProgressBar;
+    ProgressBar: TProgressBar;
     Timer100ms: TTimer;
     StopCheckBox: TCheckBox;
-    Button1: TButton;
+    GoButton: TButton;
     SFUboot_StatusLabel: TLabel;
     FastEraseCheckBox: TCheckBox;
+    DeviceEdit: TEdit;
+    ResetCheckBox: TCheckBox;
+    LabelDev: TLabel;
+    LabelBin: TLabel;
+    FirmwareEdit: TEdit;
+    StopButton: TButton;
+    ExitCheckBox: TCheckBox;
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Timer1mSTimer(Sender: TObject);
     procedure Timer100msTimer(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure GoButtonClick(Sender: TObject);
+    procedure StopButtonClick(Sender: TObject);
   private
     device : tCOMClient;
     sfu : tSFUcmd;
@@ -47,6 +56,7 @@ type
 
     procedure onCommand(code:byte; body:pbyte; count:word);
 
+    procedure OnDone_OnError;
   public
   end;
 
@@ -56,6 +66,7 @@ var
 implementation
 
 {$R *.dfm}
+{$R windowsxp.RES}
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
@@ -76,6 +87,18 @@ begin
  device.port_speed := 500000;
  device.port_parity := NOPARITY;
  device.no_activate := true;
+ device.task_open_with_reset := true;
+
+ device.stm32_task_read   := false;
+ device.stm32_task_RDlock := false;
+ device.stm32_task_UNlock := false;
+ device.stm32_task_erase  := false;
+ device.stm32_task_write  := false;
+ device.stm32_task_verify := false;
+
+ device.stm32_find_disable_atm    := true;
+ device.stm32_find_disable_armka  := false;
+ device.stm32_find_disable_spgate := true;
 
  sfu := tSFUcmd.create;
  sfu.onWrite := device.Write;
@@ -85,7 +108,10 @@ begin
 
  boot := tSFUboot.create(sfu.send_command);
  boot.onLog := self.onLogBoot;
- boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\SpGate_MR.bin';
+ boot.onERROR := self.OnDone_OnError;
+ boot.onDone  := self.OnDone_OnError;
+// boot.firmware_fname := 'E:\gsm\lab_flash\Gate_Tester_50 pcb_ver18_norm.bin';
+// boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\SpGate_MR.bin';
 // boot.firmware_fname := 'E:\gsm\lab\Firmware\SPGateM_pcb16-4lay_ver 1.21 (MR) codec fix.bin';
 // boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\added.bin';
  boot.tx_free_func := device.tx_free_bytes;
@@ -94,15 +120,23 @@ begin
  sfu.onCommand := boot.recive_command;
 
  device.onRX := sfu.process_recive;
+
+ InitializeTaskbarAPI;
+ SetTaskbarProgressState(tbpsNone);
+
  milliseconds_start(ms_timer);
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
 begin
- device.Open;
- randomize;
- MemoDevice.Lines.Add('randseed = ' + IntToStr(RandSeed));
- MemoDevice.Lines.Add('');
+// device.Open;
+
+ if DeviceEdit.Text = '' then
+  DeviceEdit.Text := 'GM18_E_0010';
+
+ if FirmwareEdit.Text = '' then
+  FirmwareEdit.Text := 'E:\Temp\flash_images_fsu_test\SpGate_MR.bin';
+//  FirmwareEdit.Text := 'E:\gsm\lab_flash\Gate_Tester_50 pcb_ver18_norm.bin';
 end;
 
 procedure TForm1.onInfoString(sender:tobject; msg:string);
@@ -117,13 +151,11 @@ begin
  milliseconds_start(ms_timer);
  msg := inttostr(device.TX_fifo_blocks.data_count)+#9 + msg;
  log_cmd.write_str(msg);
- //MemoCMD.Lines.Add(msg);
 end;
 
 procedure TForm1.onLog(sender:tobject; msg:string);
 begin
  log_dev.write_str(msg);
- //MemoDevice.Lines.Add(msg);
 end;
 
 procedure TForm1.onLogBegin(sender:tLinkClient);
@@ -145,9 +177,6 @@ begin
  cnt := count;
  while cnt > 0 do
   begin
-//   if body^ > 32 then
-//    str := str + ansichar(body^)
-//   else
     str := str + inttohex(body^, 2) + ' ';
    inc(body);
    dec(cnt);
@@ -167,25 +196,12 @@ begin
 end;
 
 procedure TForm1.Timer1mSTimer(Sender: TObject);
-//var
-// body : array[0..$100-12] of byte;
-// size : integer;
-// code : byte;
 begin
  if device.State <> link_establish then exit;
  if StopCheckBox.Checked then exit;
 
  sfu.process_recive(device, nil, 0);
  boot.next_send;
-
-{ while device.tx_free_bytes > sizeof(body)*2 do
-  begin
-   size := random(sizeof(body) div 4) * 4;
-   code := random(256);
-   rand_array(@body[0], size);
-
-   sfu.send_command(code, @body[0], size);
-  end;}          
 end;
 
 procedure TForm1.Timer100msTimer(Sender: TObject);
@@ -226,15 +242,112 @@ begin
  if (boot.task_done =  true) and (boot.task_error =  true) then SFUboot_StatusLabel.Font.Color := rgb(200, 100, 100);
  if (boot.task_done = false) and (boot.task_error =  true) then SFUboot_StatusLabel.Font.Color := rgb(200,   0,   0);
 
+ ProgressBar.Max := boot.progress_max;
+ ProgressBar.Position := boot.progress_pos;
 
- ProgressBar1.Max := boot.progress_max;
- ProgressBar1.Position := boot.progress_pos;
+ if (device.State = link_establish) then
+  begin
+   if (boot.progress_max = 0) and (boot.progress_pos = 0) then
+    SetTaskbarProgressState(tbpsIndeterminate)
+   else
+    begin
+     SetTaskbarProgressState(tbpsNormal);
+     SetTaskbarProgressValue(boot.progress_pos, boot.progress_max);
+    end;
+  end
+ else
+  begin
+   SetTaskbarProgressValue(1, 1);
+   if (boot.task_done =  true) and (boot.task_error =  true) then SetTaskbarProgressState(tbpsError);
+   if (boot.task_done =  true) and (boot.task_error =  false) then SetTaskbarProgressState(tbpsNormal);
+  end;
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TForm1.OnDone_OnError;
 begin
+ device.close;
+ if ExitCheckBox.Checked then
+  begin
+   sleep(100); Application.ProcessMessages;
+   sleep(100); Application.ProcessMessages;
+   sleep(100); Application.ProcessMessages;
+   sleep(100); Application.ProcessMessages;
+   self.Close;
+   exit;
+  end;
+
+ GoButton.Enabled := true;
+ FirmwareEdit.Enabled := true;
+ DeviceEdit.Enabled := true;
+ FastEraseCheckBox.Enabled := true;
+ ResetCheckBox.Enabled := true;
+ LabelDev.Enabled := true;
+ LabelBin.Enabled := true;
+
+ StopButton.Visible := false;
+ GoButton.Visible := true;
+end;
+
+procedure TForm1.GoButtonClick(Sender: TObject);
+var
+ start_time : cardinal;
+begin
+ StopButton.Left := GoButton.left;
+ StopButton.Top := GoButton.Top;
+ StopButton.Visible := True;
+ GoButton.Visible := False;
+
+ GoButton.Enabled := false;
+ FirmwareEdit.Enabled := false;
+ DeviceEdit.Enabled := false;
+ FastEraseCheckBox.Enabled := false;
+ ResetCheckBox.Enabled := false;
+ LabelDev.Enabled := false;
+ LabelBin.Enabled := false;
+
+ if ResetCheckBox.Checked then
+  begin
+   device.stm32_task_enable := true;
+   device.stm32_task_stop := false;
+   device.no_activate := false;
+  end
+ else
+  begin
+   device.stm32_task_enable := true;
+   device.stm32_task_stop := false;
+   device.no_activate := true;
+  end;
+
+ device.Open;
+ start_time := GetTickCount;
+ while (GetTickCount - start_time) < 5000 do
+  begin
+   if device.State = link_establish then
+    break;
+   Application.ProcessMessages;
+   sleep(1);
+  end;
+
+ if device.State <> link_establish then
+  begin
+   device.Close;
+   OnDone_OnError;
+   exit;
+  end;
+
+ boot.firmware_fname := FirmwareEdit.Text;
+
+ device.port_name := DeviceEdit.Text;
+ device.port_name_serial := (device.port_name <> '');
+
  milliseconds_start(ms_timer);
  boot.start(true, FastEraseCheckBox.Checked);
+end;
+
+procedure TForm1.StopButtonClick(Sender: TObject);
+begin
+ OnDone_OnError;
+ boot.RESET;
 end;
 
 end.
