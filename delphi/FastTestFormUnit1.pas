@@ -24,6 +24,7 @@ type
     StopCheckBox: TCheckBox;
     Button1: TButton;
     SFUboot_StatusLabel: TLabel;
+    FastEraseCheckBox: TCheckBox;
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Timer1mSTimer(Sender: TObject);
@@ -84,7 +85,8 @@ begin
 
  boot := tSFUboot.create(sfu.send_command);
  boot.onLog := self.onLogBoot;
- boot.firmware_fname := 'E:\gsm\lab\Firmware\SPGateM_pcb16-4lay_ver 1.21 (MR) codec fix.bin';
+ boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\SpGate_MR.bin';
+// boot.firmware_fname := 'E:\gsm\lab\Firmware\SPGateM_pcb16-4lay_ver 1.21 (MR) codec fix.bin';
 // boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\added.bin';
  boot.tx_free_func := device.tx_free_bytes;
  boot.tx_reset_func := device.TX_fifo_blocks.reset;
@@ -232,7 +234,7 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 begin
  milliseconds_start(ms_timer);
- boot.start(true);
+ boot.start(true, FastEraseCheckBox.Checked);
 end;
 
 end.

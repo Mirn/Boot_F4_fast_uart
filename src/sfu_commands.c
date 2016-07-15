@@ -107,26 +107,35 @@ static void sfu_command_info(uint8_t code, UNUSED uint8_t *body, UNUSED uint32_t
 	packet_send(code, info, sizeof(info));
 }
 
+typedef struct {
+	uint8_t sector_id;
+	uint8_t total_size;
+} tFLASH_sectors;
+
+#define ADDR_COMPRESS 0x00004000
+
+const tFLASH_sectors sectors[] = {
+		{FLASH_Sector_1, (0x00008000 / ADDR_COMPRESS)},
+		{FLASH_Sector_2, (0x0000C000 / ADDR_COMPRESS)},
+		{FLASH_Sector_3, (0x00010000 / ADDR_COMPRESS)},
+		{FLASH_Sector_4, (0x00020000 / ADDR_COMPRESS)},
+		{FLASH_Sector_5, (0x00040000 / ADDR_COMPRESS)},
+		{FLASH_Sector_6, (0x00060000 / ADDR_COMPRESS)},
+		{FLASH_Sector_7, (0x00080000 / ADDR_COMPRESS)},
+		{FLASH_Sector_8, (0x000A0000 / ADDR_COMPRESS)},
+		{FLASH_Sector_9, (0x000B0000 / ADDR_COMPRESS)},
+		{FLASH_Sector_10,(0x000C0000 / ADDR_COMPRESS)},
+		{FLASH_Sector_11,(0x000E0000 / ADDR_COMPRESS)},
+};
+
 static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 {
 	if (size != 4) return;
 
-	if ((body[0] == 0xFF) && (body[1] == 0xFF) && (body[2] == 0xFF) && (body[3] == 0xFF))
-	{
-		const uint16_t sectors[] = {
-				FLASH_Sector_1,
-				FLASH_Sector_2,
-				FLASH_Sector_3,
-				FLASH_Sector_4,
-				FLASH_Sector_5,
-				FLASH_Sector_6,
-				FLASH_Sector_7,
-				FLASH_Sector_8,
-				FLASH_Sector_9,
-				FLASH_Sector_10,
-				FLASH_Sector_11,
-		};
+	uint32_t firmware_size = deserialize_uint32(body);
 
+	if (firmware_size > 0)
+	{
 		FLASH_Status status = FLASH_BUSY;
 		FLASH_Unlock();
 		FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |
@@ -134,11 +143,17 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 
 		for (uint32_t pos = 0; pos < LENGTH(sectors); pos++)
 		{
-			status = FLASH_EraseSector(sectors[pos], VoltageRange_3);
+			if ((FLASH_SIZE == 512) && (sectors[pos].sector_id == FLASH_Sector_8)) break;
+
+			status = FLASH_EraseSector(sectors[pos].sector_id, VoltageRange_3);
+			if (status != FLASH_COMPLETE)
+				break;
+
 			packet_send(SFU_CMD_ERASE_PART, (uint8_t *)&pos, sizeof(pos));
 
-			if (status != FLASH_COMPLETE) break;
-			if ((FLASH_SIZE == 512) && (sectors[pos] == FLASH_Sector_8)) break;
+			uint32_t erased_size = ((uint32_t)sectors[pos].total_size) * ADDR_COMPRESS;
+			if (erased_size >= firmware_size)
+				break;
 		}
 		FLASH_Lock();
 

@@ -20,7 +20,7 @@ object Form1: TForm1
   TextHeight = 13
   object StatLabel: TLabel
     Left = 8
-    Top = 744
+    Top = 736
     Width = 360
     Height = 18
     Anchors = [akLeft, akBottom]
@@ -96,13 +96,29 @@ object Form1: TForm1
     TabOrder = 3
   end
   object Button1: TButton
-    Left = 384
-    Top = 768
+    Left = 376
+    Top = 760
     Width = 75
-    Height = 25
-    Caption = 'START'
+    Height = 49
+    Caption = 'GO'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -43
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentFont = False
     TabOrder = 4
     OnClick = Button1Click
+  end
+  object FastEraseCheckBox: TCheckBox
+    Left = 456
+    Top = 760
+    Width = 97
+    Height = 17
+    Caption = 'Fast Erase'
+    Checked = True
+    State = cbChecked
+    TabOrder = 5
   end
   object Timer1mS: TTimer
     Interval = 1
