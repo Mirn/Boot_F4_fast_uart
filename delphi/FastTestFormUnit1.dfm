@@ -1,9 +1,10 @@
 object Form1: TForm1
   Left = 192
   Top = 118
-  Width = 1535
-  Height = 839
+  BorderStyle = bsDialog
   Caption = 'SFU uploader'
+  ClientHeight = 807
+  ClientWidth = 1525
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -131,10 +132,10 @@ object Form1: TForm1
     Width = 75
     Height = 49
     Anchors = [akLeft, akBottom]
-    Caption = 'GO'
+    Caption = 'Run'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -43
+    Font.Height = -32
     Font.Name = 'Courier New'
     Font.Style = [fsBold]
     ParentFont = False
@@ -209,10 +210,10 @@ object Form1: TForm1
     Width = 73
     Height = 49
     Anchors = [akLeft, akBottom]
-    Caption = '!X!'
+    Caption = 'Stop'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clMaroon
-    Font.Height = -43
+    Font.Height = -24
     Font.Name = 'Courier New'
     Font.Style = [fsBold]
     ParentFont = False

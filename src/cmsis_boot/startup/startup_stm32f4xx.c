@@ -422,6 +422,8 @@ void Default_Reset_Handler(void)
 /* The prototype shows it is a naked function - in effect this is just an
 assembly function. */
 
+//#define DEBUG_PRINTF
+
 #ifndef DEBUG_PRINTF
 static void Default_Handler(void)
 {

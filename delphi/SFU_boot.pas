@@ -219,7 +219,7 @@ begin
  crc_value := body_get_cardinal(body, count);
 
  log('Command: Check and START');
- log('Crc_from  : 0x' + inttohex(crc_from, 8));
+ log('crc_from  : 0x' + inttohex(crc_from, 8));
  log('crc_to    : 0x' + inttohex(crc_from + crc_size, 8));
  log('crc_value : 0x' + inttohex(crc_value, 8));
  log(' ');
@@ -451,7 +451,6 @@ begin
   exit;
 
  //log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count)); log('');
-
  move(firmware_buf[pos], body[4], count);
  CommandSend(SFU_CMD_WRITE, @body[0], count + 4);
  firmware_addr := firmware_addr + count;

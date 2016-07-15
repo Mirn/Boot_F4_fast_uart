@@ -57,7 +57,9 @@ type
     dev_filelog : file;
     cmd_filelog : file;
 
+    auto_run : boolean;
     start_count : integer;
+    form_closed : boolean; //TO DO: сделать нормально!
 
     procedure onLog(sender:tobject; msg:string);
     procedure onLogBoot(sender:tobject; msg:string);
@@ -122,7 +124,7 @@ begin
 
  device.port_name_serial := true;
  device.port_name := 'GM18_E_0010';
- device.port_speed := 500000;
+ device.port_speed := 500000;//921600;//
  device.port_parity := NOPARITY;
  device.no_activate := true;
  device.task_open_with_reset := true;
@@ -170,6 +172,13 @@ begin
  FreeAndNil(log_cmd);
  FreeAndNil(log_dev);
 
+ Timer100ms.Enabled := false;
+ Timer100ms.onTimer := nil;
+ Timer1ms.Enabled := false;
+ Timer1ms.onTimer := nil;
+
+ form_closed := true;
+
 {$I-}
  CloseFile(dev_filelog);
  CloseFile(cmd_filelog);
@@ -184,13 +193,10 @@ procedure TForm1.FormShow(Sender: TObject);
 var
  index : integer;
  str : string;
- go : boolean;
 const
  DEV_KEY : string = '-CP210X:';
 begin
-// device.Open;
-
- go := false;
+ auto_run := false;
  if ParamCount > 0 then
   begin
    ResetCheckBox.Checked := false;
@@ -204,9 +210,12 @@ begin
     begin
      str := ParamStr(index);
      if UpperCase(str) = UpperCase('-reset') then ResetCheckBox.Checked := true else
+     if UpperCase(str) = UpperCase('-RST')   then ResetCheckBox.Checked := true else
      if UpperCase(str) = UpperCase('-fast')  then FastCheckBox.Checked := true else
      if UpperCase(str) = UpperCase('-exit')  then ExitCheckBox.Checked := true else
-     if UpperCase(str) = UpperCase('-go')  then go := true else
+     if UpperCase(str) = UpperCase('-go')    then auto_run := true else
+     if UpperCase(str) = UpperCase('-run')   then auto_run := true else
+     if UpperCase(str) = UpperCase('-start') then auto_run := true else
 
      if UpperCase(copy(str, 1, length(DEV_KEY))) = DEV_KEY then
       DeviceEdit.Text := copy(str, length(DEV_KEY)+1, length(str))
@@ -215,16 +224,6 @@ begin
      inc(index);
     end;
   end;
-
- if go then
-  GoButton.Click;
-
-{ if DeviceEdit.Text = '' then
-  DeviceEdit.Text := 'GM18_E_0010';
-
- if FirmwareEdit.Text = '' then
-  FirmwareEdit.Text := 'E:\Temp\flash_images_fsu_test\SpGate_MR.bin';
-//  FirmwareEdit.Text := 'E:\gsm\lab_flash\Gate_Tester_50 pcb_ver18_norm.bin';}
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -283,6 +282,10 @@ end;
 
 procedure TForm1.Timer1mSTimer(Sender: TObject);
 begin
+ if device = nil then exit;
+ if sfu = nil then exit;
+ if boot = nil then exit;
+
  if device.State <> link_establish then exit;
  if StopCheckBox.Checked then exit;
 
@@ -292,6 +295,18 @@ end;
 
 procedure TForm1.Timer100msTimer(Sender: TObject);
 begin
+ if auto_run then
+  begin
+   auto_run := false;
+   GoButton.Click;
+   if form_closed then exit;
+  end;
+
+ if device = nil then exit;
+ if sfu = nil then exit;
+ if boot = nil then exit;
+
+ if log_dev <> nil then
  if log_dev.blocks_count > 0 then
   begin
    MemoDevice.Lines.BeginUpdate;
@@ -301,6 +316,7 @@ begin
    SendMessage(MemoDevice.Handle, EM_LINESCROLL, 0, MemoDevice.Lines.Count);
   end;
 
+ if log_cmd <> nil then
  if log_cmd.blocks_count > 0 then
   begin
    MemoCMD.Lines.BeginUpdate;
@@ -325,8 +341,8 @@ begin
  SFUboot_StatusLabel.Caption := boot.task_info;
  if (boot.task_done = false) and (boot.task_error = false) then SFUboot_StatusLabel.Font.Color := rgb(  0,   0,   0);
  if (boot.task_done =  true) and (boot.task_error = false) then SFUboot_StatusLabel.Font.Color := rgb(  0, 100,   0);
- if (boot.task_done =  true) and (boot.task_error =  true) then SFUboot_StatusLabel.Font.Color := rgb(200, 100, 100);
- if (boot.task_done = false) and (boot.task_error =  true) then SFUboot_StatusLabel.Font.Color := rgb(200,   0,   0);
+ if (boot.task_done =  true) and (boot.task_error =  true) then SFUboot_StatusLabel.Font.Color := rgb(200,   0,   0);
+ if (boot.task_done = false) and (boot.task_error =  true) then SFUboot_StatusLabel.Font.Color := rgb(200,  50,  50);
 
  ProgressBar.Max := boot.progress_max;
  ProgressBar.Position := boot.progress_pos;
@@ -418,14 +434,19 @@ begin
  start_time := GetTickCount;
  while (GetTickCount - start_time) < 5000 do
   begin
-   if device.State = link_establish then
+   if device.State in [link_error, link_idle, link_establish, link_close] then
     break;
    Application.ProcessMessages;
+   if form_closed then
+    exit;
    sleep(1);
   end;
 
  if device.State <> link_establish then
   begin
+   boot.task_error := true;
+   boot.task_info := 'Device open timeout ERROR';
+   onLog(self, 'Device open timeout ERROR');
    device.Close;
    OnDone_OnError;
    exit;

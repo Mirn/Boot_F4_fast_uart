@@ -226,7 +226,7 @@ void test_send()
 
 void recive_packets_print_stat()
 {
-#ifndef LOG_DETAILS
+#ifndef PRINTF_DISABLED
 	static uint32_t last_time = 0;
 	uint32_t now_time = DWT_CYCCNT;
 
