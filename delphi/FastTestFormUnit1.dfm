@@ -11,6 +11,7 @@ object Form1: TForm1
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  OnClose = FormClose
   OnCreate = FormCreate
   OnShow = FormShow
   DesignSize = (
@@ -140,7 +141,7 @@ object Form1: TForm1
     TabOrder = 4
     OnClick = GoButtonClick
   end
-  object FastEraseCheckBox: TCheckBox
+  object FastCheckBox: TCheckBox
     Left = 456
     Top = 751
     Width = 73
@@ -191,7 +192,7 @@ object Form1: TForm1
   object FirmwareEdit: TEdit
     Left = 624
     Top = 775
-    Width = 897
+    Width = 865
     Height = 30
     Anchors = [akLeft, akBottom]
     Font.Charset = RUSSIAN_CHARSET
@@ -233,6 +234,16 @@ object Form1: TForm1
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 10
+  end
+  object OpenFWButton: TButton
+    Left = 1496
+    Top = 776
+    Width = 25
+    Height = 25
+    Anchors = [akLeft, akBottom]
+    Caption = '...'
+    TabOrder = 11
+    OnClick = OpenFWButtonClick
   end
   object Timer1mS: TTimer
     Interval = 1

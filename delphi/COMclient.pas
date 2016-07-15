@@ -1509,7 +1509,6 @@ go_work:
      if stm32_task_verify then stm32_info_result := stm32_info_result + ' [Verify]' else
       stm32_info_result := stm32_info_result + ' [RESET]';
      Log_add(' ');
-     Log_add('TASK DONE:');
      Log_add(stm32_info_result);
      Log_add(' ');
     end

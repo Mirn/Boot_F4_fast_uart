@@ -51,7 +51,7 @@ Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
-RunParams=
+RunParams=-fast -reset -cp210x:GM18_E_0010 "E:\gsm\lab_flash\Gate_Tester_50 pcb_ver18_norm.bin" 
 HostApplication=
 Launcher=
 UseLauncher=0

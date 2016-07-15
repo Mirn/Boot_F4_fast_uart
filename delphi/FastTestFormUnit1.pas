@@ -25,7 +25,7 @@ type
     StopCheckBox: TCheckBox;
     GoButton: TButton;
     SFUboot_StatusLabel: TLabel;
-    FastEraseCheckBox: TCheckBox;
+    FastCheckBox: TCheckBox;
     DeviceEdit: TEdit;
     ResetCheckBox: TCheckBox;
     LabelDev: TLabel;
@@ -33,12 +33,16 @@ type
     FirmwareEdit: TEdit;
     StopButton: TButton;
     ExitCheckBox: TCheckBox;
+    OpenFWButton: TButton;
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Timer1mSTimer(Sender: TObject);
     procedure Timer100msTimer(Sender: TObject);
     procedure GoButtonClick(Sender: TObject);
     procedure StopButtonClick(Sender: TObject);
+    procedure OpenFWButtonClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+
   private
     device : tCOMClient;
     sfu : tSFUcmd;
@@ -47,6 +51,13 @@ type
 
     log_cmd : tfifo_blocks;
     log_dev : tfifo_blocks;
+
+    current_dir : string;
+
+    dev_filelog : file;
+    cmd_filelog : file;
+
+    start_count : integer;
 
     procedure onLog(sender:tobject; msg:string);
     procedure onLogBoot(sender:tobject; msg:string);
@@ -68,13 +79,40 @@ implementation
 {$R *.dfm}
 {$R windowsxp.RES}
 
+procedure logfile_create(var f:file; name:string);
+begin
+{$I-}
+ AssignFile(f, name);
+ rewrite(f, 1);
+{$I+}
+end;
+
+procedure logfile_write_str(var f:file; str:string);
+begin
+ if str = '' then exit;
+ str := str + #13;
+{$I-}
+ BlockWrite(f, str[1], length(str));
+{$I+}
+end;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
  log_dev := tfifo_blocks.create($10000, $4000);
  log_cmd := tfifo_blocks.create($10000, $4000);
+
  self.DoubleBuffered := true;
  MemoDevice.DoubleBuffered := true;
  MemoCMD.DoubleBuffered := true;
+
+ current_dir := GetCurrentDir;
+
+ logfile_create(dev_filelog, 'dev.log');
+ logfile_create(cmd_filelog, 'cmd.log');
 
  device := tCOMClient.Create($10000, $4000);//, $2000, $2000);
 
@@ -110,10 +148,6 @@ begin
  boot.onLog := self.onLogBoot;
  boot.onERROR := self.OnDone_OnError;
  boot.onDone  := self.OnDone_OnError;
-// boot.firmware_fname := 'E:\gsm\lab_flash\Gate_Tester_50 pcb_ver18_norm.bin';
-// boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\SpGate_MR.bin';
-// boot.firmware_fname := 'E:\gsm\lab\Firmware\SPGateM_pcb16-4lay_ver 1.21 (MR) codec fix.bin';
-// boot.firmware_fname := 'E:\Temp\flash_images_fsu_test\added.bin';
  boot.tx_free_func := device.tx_free_bytes;
  boot.tx_reset_func := device.TX_fifo_blocks.reset;
 
@@ -127,22 +161,78 @@ begin
  milliseconds_start(ms_timer);
 end;
 
+
+procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+ FreeAndNil(device);
+ FreeAndNil(sfu);
+ FreeAndNil(boot);
+ FreeAndNil(log_cmd);
+ FreeAndNil(log_dev);
+
+{$I-}
+ CloseFile(dev_filelog);
+ CloseFile(cmd_filelog);
+{$I+}
+end;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 procedure TForm1.FormShow(Sender: TObject);
+var
+ index : integer;
+ str : string;
+ go : boolean;
+const
+ DEV_KEY : string = '-CP210X:';
 begin
 // device.Open;
 
- if DeviceEdit.Text = '' then
+ go := false;
+ if ParamCount > 0 then
+  begin
+   ResetCheckBox.Checked := false;
+   FastCheckBox.Checked := false;
+   ExitCheckBox.Checked := false;
+   DeviceEdit.Text := '';
+   FirmwareEdit.Text := '';
+
+   index := 1;
+   while index <= ParamCount do
+    begin
+     str := ParamStr(index);
+     if UpperCase(str) = UpperCase('-reset') then ResetCheckBox.Checked := true else
+     if UpperCase(str) = UpperCase('-fast')  then FastCheckBox.Checked := true else
+     if UpperCase(str) = UpperCase('-exit')  then ExitCheckBox.Checked := true else
+     if UpperCase(str) = UpperCase('-go')  then go := true else
+
+     if UpperCase(copy(str, 1, length(DEV_KEY))) = DEV_KEY then
+      DeviceEdit.Text := copy(str, length(DEV_KEY)+1, length(str))
+     else
+      FirmwareEdit.Text := str;
+     inc(index);
+    end;
+  end;
+
+ if go then
+  GoButton.Click;
+
+{ if DeviceEdit.Text = '' then
   DeviceEdit.Text := 'GM18_E_0010';
 
  if FirmwareEdit.Text = '' then
   FirmwareEdit.Text := 'E:\Temp\flash_images_fsu_test\SpGate_MR.bin';
-//  FirmwareEdit.Text := 'E:\gsm\lab_flash\Gate_Tester_50 pcb_ver18_norm.bin';
+//  FirmwareEdit.Text := 'E:\gsm\lab_flash\Gate_Tester_50 pcb_ver18_norm.bin';}
 end;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 procedure TForm1.onInfoString(sender:tobject; msg:string);
 begin
  log_dev.write_str(msg);
- //MemoDevice.Lines.Add('SFU device:'#9 + msg);
+ logfile_write_str(dev_filelog, msg);
 end;
 
 procedure TForm1.onLogBoot(sender:tobject; msg:string);
@@ -151,11 +241,13 @@ begin
  milliseconds_start(ms_timer);
  msg := inttostr(device.TX_fifo_blocks.data_count)+#9 + msg;
  log_cmd.write_str(msg);
+ logfile_write_str(cmd_filelog, msg);
 end;
 
 procedure TForm1.onLog(sender:tobject; msg:string);
 begin
  log_dev.write_str(msg);
+ logfile_write_str(dev_filelog, msg);
 end;
 
 procedure TForm1.onLogBegin(sender:tLinkClient);
@@ -167,6 +259,10 @@ procedure TForm1.onLogEnd(sender:tLinkClient);
 begin
  MemoDevice.Lines.EndUpdate;
 end;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 procedure TForm1.onCommand(code:byte; body:pbyte; count:word);
 var
@@ -183,16 +279,6 @@ begin
   end;
 
  MemoCMD.Lines.Add('CMD('+inttohex(code, 2)+'#'+inttohex(count, 2)+'): ' + str);
-end;
-
-procedure rand_array(buf:pbyte; cnt:cardinal);
-begin
- while cnt > 0 do
-  begin
-   buf^ := random(256);
-   inc(buf);
-   dec(cnt);
-  end;
 end;
 
 procedure TForm1.Timer1mSTimer(Sender: TObject);
@@ -245,41 +331,50 @@ begin
  ProgressBar.Max := boot.progress_max;
  ProgressBar.Position := boot.progress_pos;
 
- if (device.State = link_establish) then
-  begin
-   if (boot.progress_max = 0) and (boot.progress_pos = 0) then
-    SetTaskbarProgressState(tbpsIndeterminate)
-   else
-    begin
-     SetTaskbarProgressState(tbpsNormal);
-     SetTaskbarProgressValue(boot.progress_pos, boot.progress_max);
-    end;
-  end
- else
-  begin
-   SetTaskbarProgressValue(1, 1);
-   if (boot.task_done =  true) and (boot.task_error =  true) then SetTaskbarProgressState(tbpsError);
-   if (boot.task_done =  true) and (boot.task_error =  false) then SetTaskbarProgressState(tbpsNormal);
-  end;
+ if (start_count > 0) then
+  if (device.State = link_establish) or (device.State = link_open) then
+   begin
+    if ((boot.progress_max = 0) and (boot.progress_pos = 0)) or (device.State = link_open) then
+     SetTaskbarProgressState(tbpsIndeterminate)
+    else
+     begin
+      SetTaskbarProgressState(tbpsNormal);
+      SetTaskbarProgressValue(boot.progress_pos, boot.progress_max);
+     end;
+   end
+  else
+   begin
+    SetTaskbarProgressValue(1, 1);
+    if (boot.task_done =  true) and (boot.task_error =  true) then SetTaskbarProgressState(tbpsError);
+    if (boot.task_done =  true) and (boot.task_error =  false) then SetTaskbarProgressState(tbpsNormal);
+   end;
 end;
 
 procedure TForm1.OnDone_OnError;
 begin
  device.close;
+ sfu.recive_reset;
+
  if ExitCheckBox.Checked then
   begin
    sleep(100); Application.ProcessMessages;
    sleep(100); Application.ProcessMessages;
    sleep(100); Application.ProcessMessages;
    sleep(100); Application.ProcessMessages;
+
+   if boot.task_error then
+    ExitCode := 1
+   else
+    ExitCode := 0;
+
    self.Close;
    exit;
   end;
 
  GoButton.Enabled := true;
- FirmwareEdit.Enabled := true;
  DeviceEdit.Enabled := true;
- FastEraseCheckBox.Enabled := true;
+ FirmwareEdit.Enabled := true;
+ FastCheckBox.Enabled := true;
  ResetCheckBox.Enabled := true;
  LabelDev.Enabled := true;
  LabelBin.Enabled := true;
@@ -292,15 +387,16 @@ procedure TForm1.GoButtonClick(Sender: TObject);
 var
  start_time : cardinal;
 begin
+ inc(start_count);
  StopButton.Left := GoButton.left;
  StopButton.Top := GoButton.Top;
  StopButton.Visible := True;
  GoButton.Visible := False;
 
  GoButton.Enabled := false;
- FirmwareEdit.Enabled := false;
  DeviceEdit.Enabled := false;
- FastEraseCheckBox.Enabled := false;
+ FirmwareEdit.Enabled := false;
+ FastCheckBox.Enabled := false;
  ResetCheckBox.Enabled := false;
  LabelDev.Enabled := false;
  LabelBin.Enabled := false;
@@ -341,13 +437,48 @@ begin
  device.port_name_serial := (device.port_name <> '');
 
  milliseconds_start(ms_timer);
- boot.start(true, FastEraseCheckBox.Checked);
+ boot.start(true, FastCheckBox.Checked);
 end;
 
 procedure TForm1.StopButtonClick(Sender: TObject);
 begin
  OnDone_OnError;
  boot.RESET;
+end;
+
+procedure TForm1.OpenFWButtonClick(Sender: TObject);
+var
+ OpenDialog : TOpenDialog;
+begin
+ OpenDialog := TOpenDialog.Create(self);
+ OpenDialog.DefaultExt := 'bin';
+ OpenDialog.FileName := '';
+ OpenDialog.Filter   := '(*.bin)|*.bin';
+// OpenDialog.Filter   := '(*.bin; *.hex)|*.bin;*.hex';
+ opendialog.Options  := [ofHideReadOnly,ofEnableSizing];
+
+ if not OpenDialog.Execute then
+  begin
+   {$I-}
+   ChDir(current_dir);
+   if IOResult<>0 then
+    MemoDevice.Lines.Add('ERROR: Can''t change dir to '+current_dir);
+   {$I+}
+   OpenDialog.Free;
+   exit;
+  end;
+
+ {$I-}
+ ChDir(current_dir);
+ if IOResult<>0 then
+  MemoDevice.Lines.Add('ERROR: Can''t change dir to '+current_dir);
+ {$I+}
+
+ FirmwareEdit.Text := openDialog.FileName;
+ FirmwareEdit.SelStart  := length(FirmwareEdit.Text);
+ FirmwareEdit.SelLength := 0;
+
+ FreeAndNil(OpenDialog);
 end;
 
 end.

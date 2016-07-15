@@ -25,7 +25,7 @@ begin
 
  {$I-}
  old_mode := filemode;
- filemode := fmOpenReadWrite;
+ filemode := fmOpenRead;
  AssignFile(f, file_name);
  reset(f,1);
  filemode := old_mode;

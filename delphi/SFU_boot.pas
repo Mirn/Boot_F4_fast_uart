@@ -313,6 +313,8 @@ begin
     progress_pos := progress_max;
     log('Write Done');
     log(' ');
+    send_timeout := GetTickCount;
+    exit;
    end;
 
  if not write_done then
@@ -580,7 +582,7 @@ begin
    progress_max := 1;
    progress_pos := 1;
 
-   log('Task DONE');
+   log('Task DONE ['+datetostr(date)+' '+TimeToStr(time)+']');
    task_done := true;
 
    if @onDone <> nil then

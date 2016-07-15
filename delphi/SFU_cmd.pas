@@ -33,7 +33,6 @@ type
 
   raw_log : file;
 
-  procedure recive_reset;
   function  error_check(error_flag:boolean; msg:string; var stat:cardinal):boolean;
   function  recive_block_add(data:byte; need:cardinal):boolean;
 
@@ -66,6 +65,7 @@ type
 
   constructor create(write:tSFUcmd_EventWrite = nil; command:tSFUcmd_EventCommand = nil; infostring:tSFUcmd_EventInfoString = nil; log:tSFUcmd_EventLog = nil);
   procedure send_command(code:byte; cmd_body:pointer = nil; size:word = 0);
+  procedure recive_reset;
   procedure process_recive(sender:tLinkClient; data:pbyte; size:integer);
  end;
 
