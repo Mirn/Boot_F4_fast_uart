@@ -348,7 +348,7 @@ begin
   end;
 
  last_writed_addr := addr;
- send_timeout := GetTickCount + 200;
+ send_timeout := GetTickCount + 250;
 end;
 
 procedure tSFUboot.error_stop(msg:string);

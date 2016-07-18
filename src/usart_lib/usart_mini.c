@@ -19,6 +19,8 @@
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_usart.h"
 
+//#define USART_BOD_DEBUG
+
 #include "misc_inline.h"
 #include "stm32f4xx_rcc_inline.h"
 #include "stm32f4xx_gpio_inline.h"
@@ -27,8 +29,9 @@
 
 #include "usart_mini.h"
 
-#define USART_BOD 500000
-//#define USART_BOD 921600
+//#define USART_BOD 500000
+#define USART_BOD 921600
+//#define USART_BOD 115200
 
 uint8_t rx_buffer[0x20000]  __attribute__ ((section (".usart_mini_rx_buffer"), used));
 
@@ -128,6 +131,15 @@ void usart_init()
 
     USART_Cmd_inline(USART1, ENABLE);
 #endif
+
+#ifdef USART_BOD_DEBUG
+#pragma GCC diagnostic ignored "-Wformat"
+	  printf("USART_BaudRate\t%i\r", debug[0]);
+	  printf("apbclock      \t%i\r", debug[1]);
+	  printf("integerdivider\t%i\r", debug[2]);
+	  printf("tmpreg        \t0x%04X\r", debug[3]);
+	  printf(" \r");
+#endif
 }
 
 void USART1_IRQHandler(void)
@@ -137,6 +149,12 @@ void USART1_IRQHandler(void)
 		rx_buffer[rx_pos_write % sizeof(rx_buffer)] = USART_ReceiveData_inline(USART1);
 		rx_pos_write++;
 	}
+
+	if (USART_GetITStatus_inline(USART1, USART_IT_ORE_RX) != RESET) {USART_ReceiveData_inline(USART1);};
+//	if (USART_GetITStatus_inline(USART1, USART_IT_ORE_ER) != RESET) {send('2'); };
+//	if (USART_GetITStatus_inline(USART1, USART_IT_NE    ) != RESET) {send('3'); };
+//	if (USART_GetITStatus_inline(USART1, USART_IT_FE    ) != RESET) {send('4'); };
+//	if (USART_GetITStatus_inline(USART1, USART_IT_PE    ) != RESET) {send('5'); };
 }
 
 bool recive_byte(uint8_t *rx_data)
@@ -149,7 +167,7 @@ bool recive_byte(uint8_t *rx_data)
 
 	if (count >= sizeof(rx_buffer))
 	{
-		rx_pos_read = rx_pos_write - sizeof(rx_buffer) - 1;
+		rx_pos_read = rx_pos_write + 1 - sizeof(rx_buffer);
 		rx_overfulls++;
 	}
 
@@ -170,8 +188,8 @@ uint32_t recive_free()
 
 void send(const uint8_t tx_data)
 {
-	while ((USART1->SR & USART_FLAG_TC) == RESET);
     USART1->DR = tx_data;
+	while ((USART1->SR & USART_FLAG_TC) == RESET);
 }
 
 void send_block(const uint8_t *data, const uint32_t size)

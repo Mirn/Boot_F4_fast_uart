@@ -47,7 +47,9 @@ type
     device : tCOMClient;
     sfu : tSFUcmd;
     boot : tSFUboot;
-    ms_timer : tmillisecond_timer;
+
+    cmd_ms_timer : tmillisecond_timer;
+    dev_ms_timer : tmillisecond_timer;
 
     log_cmd : tfifo_blocks;
     log_dev : tfifo_blocks;
@@ -124,7 +126,7 @@ begin
 
  device.port_name_serial := true;
  device.port_name := 'GM18_E_0010';
- device.port_speed := 500000;//921600;//
+ device.port_speed := 921600;//500000;//115200;//
  device.port_parity := NOPARITY;
  device.no_activate := true;
  device.task_open_with_reset := true;
@@ -160,7 +162,8 @@ begin
  InitializeTaskbarAPI;
  SetTaskbarProgressState(tbpsNone);
 
- milliseconds_start(ms_timer);
+ milliseconds_start(cmd_ms_timer);
+ milliseconds_start(dev_ms_timer);
 end;
 
 
@@ -227,27 +230,42 @@ begin
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 procedure TForm1.onInfoString(sender:tobject; msg:string);
 begin
+ msg := inttostr(round(milliseconds_get(dev_ms_timer))) + #9 + msg;
+ milliseconds_start(dev_ms_timer);
+
  log_dev.write_str(msg);
+ log_cmd.write_str(':');
  logfile_write_str(dev_filelog, msg);
 end;
 
 procedure TForm1.onLogBoot(sender:tobject; msg:string);
 begin
- msg := inttostr(round(milliseconds_get(ms_timer))) + #9 + msg;
- milliseconds_start(ms_timer);
+ msg := inttostr(round(milliseconds_get(cmd_ms_timer))) + #9 + msg;
+ milliseconds_start(cmd_ms_timer);
+
  msg := inttostr(device.TX_fifo_blocks.data_count)+#9 + msg;
+
  log_cmd.write_str(msg);
+ log_dev.write_str(':');
  logfile_write_str(cmd_filelog, msg);
 end;
 
 procedure TForm1.onLog(sender:tobject; msg:string);
 begin
+ msg := inttostr(round(milliseconds_get(dev_ms_timer))) + #9 + msg;
+ milliseconds_start(dev_ms_timer);
+
  log_dev.write_str(msg);
+ log_cmd.write_str(':');
  logfile_write_str(dev_filelog, msg);
 end;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 procedure TForm1.onLogBegin(sender:tLinkClient);
 begin
@@ -457,7 +475,8 @@ begin
  device.port_name := DeviceEdit.Text;
  device.port_name_serial := (device.port_name <> '');
 
- milliseconds_start(ms_timer);
+ milliseconds_start(cmd_ms_timer);
+ milliseconds_start(dev_ms_timer);
  boot.start(true, FastCheckBox.Checked);
 end;
 

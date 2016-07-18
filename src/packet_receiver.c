@@ -14,14 +14,6 @@
 
 #include "sfu_commands.h"
 
-//#define LOG_DETAILS
-
-#ifdef LOG_DETAILS
-#define send_status(msg) send_str(msg)
-#else
-#define send_status(msg)
-#endif
-
 #define PACKET_SIGN_RX 0x817EA345
 #define PACKET_SIGN_TX 0x45A37E81
 
@@ -93,7 +85,7 @@ static bool recive_n_bytes(uint32_t cnt)
 	};
 
 	if (packet_cnt >= sizeof(packet_buf))
-		return ERROR_RESET("packet_buf overfull", &stat_error_overfull);
+		return ERROR_RESET("Overfull", &stat_error_overfull);
 
 	return true;
 }
@@ -109,15 +101,17 @@ static bool recive_check_start()
 	packet_start = (packet_start << 8) | ((uint32_t)rx);
 	if (packet_start == PACKET_SIGN_RX)
 	{
-		send_status("packet_start_sign OK\r");
 		stat_error_start -= 3;
 
 		packet_cnt = 0;
 		recive_check = recive_check_info;
-		return true;
+		return false;
 	}
 
 	stat_error_start++;
+	if ((stat_error_start > 5) && (stat_error_start < 100))
+		printf("%02X ", rx);
+
 	return false;
 }
 
@@ -130,19 +124,18 @@ static bool recive_check_info()
 	packet_code_n = packet_buf[1] ^ 0xFF;
 
 	if (packet_code != packet_code_n)
-		return ERROR_RESET("recive_check_info: packet_code != ~packet_code_n", &stat_error_code);
+		return ERROR_RESET("Code", &stat_error_code);
 
 	packet_size = (((uint16_t)packet_buf[2]) << 0) |
 				  (((uint16_t)packet_buf[3]) << 8);
 
 	if (packet_size > PACKET_MAX_SIZE)
-		return ERROR_RESET("recive_check_info: packet_size > PACKET_MAX_SIZE", &stat_error_size);
+		return ERROR_RESET("Size", &stat_error_size);
 
 	packet_body = &packet_buf[4];
 
-	send_status("packet_check_info OK\r");
 	recive_check = (packet_size > 0) ? recive_check_body : recive_check_crc;
-	return true;
+	return false;
 }
 
 static bool recive_check_body()
@@ -150,9 +143,8 @@ static bool recive_check_body()
 	if (!recive_n_bytes(packet_size))
 		return false;
 
-	send_status("recive_check_body OK\r");
 	recive_check = recive_check_crc;
-	return true;
+	return false;
 }
 
 static bool recive_check_crc()
@@ -169,14 +161,10 @@ static bool recive_check_crc()
 	CRC_ResetDR_inline();
 	uint32_t real_crc = CRC_CalcBlockCRC_inline((uint32_t*)packet_buf, (packet_cnt - 4)/4);
 
-	//printf("real_crc  \t%08X\r", real_crc);
-	//printf("packet_crc\t%08X\r", packet_crc);
-
 	if (real_crc != packet_crc)
-		return ERROR_RESET("recive_check_crc: real_crc != packet_crc", &stat_error_crc);
+		return ERROR_RESET("CRC", &stat_error_crc);
 
 	stat_normals++;
-	send_status("recive_check_crc OK\r");
 
 	sfu_command_parser(packet_code, packet_body, packet_size);
 
@@ -234,6 +222,9 @@ void recive_packets_print_stat()
 		return;// test_send();
 	last_time = now_time;
 
+	//printf("\r");
+	//printf("%i\t", rx_pos_read);
+	//printf("%i\t", rx_pos_write);
 	printf("%i\t", rx_overfulls);
 	printf("%i\t", rx_count_max);
 	printf("\t");
@@ -261,10 +252,11 @@ void recive_packets_worker()
 	{
 		stat_error_timeout++;
 		recive_packets_init();
-		send_status("timeout\r");
+		send_str("Timeout\r");
 		sfu_command_timeout();
 	}
 
-	while ((*recive_check)())
-		packet_timeout = TIMEOUT_RESTART;
+	while (recive_count() > 0)
+		if ((*recive_check)())
+			packet_timeout = TIMEOUT_RESTART;
 }

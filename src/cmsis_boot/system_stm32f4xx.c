@@ -147,7 +147,7 @@
 /************************* PLL Parameters *************************************/
 /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
 #define PLL_M      8
-#define PLL_N      320
+#define PLL_N      295 //For max BOD; old values: //336 //168MHz     //320 //160Mhz    //
 
 /* SYSCLK = PLL_VCO / PLL_P */
 #define PLL_P      2
@@ -179,7 +179,7 @@
   */
 
 #ifdef SystemCoreClockUpdate_ENABLED
-uint32_t SystemCoreClock = 123456789;
+uint32_t SystemCoreClock = 0;
 #endif
 
   const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};

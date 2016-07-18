@@ -99,6 +99,10 @@ static inline void USART_Cmd_inline(USART_TypeDef* USARTx, FunctionalState NewSt
   }
 }
 
+#ifdef USART_BOD_DEBUG
+uint32_t debug[4] = {0};
+#endif
+
 /**
   * @brief  Initializes the USARTx peripheral according to the specified
   *         parameters in the USART_InitStruct .
@@ -213,6 +217,12 @@ static inline void USART_Init_inline(USART_TypeDef* USARTx, USART_InitTypeDef* U
 
   /* Write to USART BRR register */
   USARTx->BRR = (uint16_t)tmpreg;
+#ifdef USART_BOD_DEBUG
+      debug[0] = USART_InitStruct->USART_BaudRate;
+	  debug[1] = apbclock;
+	  debug[2] = integerdivider;
+	  debug[3] = tmpreg;
+#endif
 }
 
 /** @defgroup USART_Group9 Interrupts and flags management functions

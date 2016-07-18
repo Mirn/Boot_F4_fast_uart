@@ -9,6 +9,9 @@
 #include "stm32f4xx_usart.h"
 #endif
 
+extern volatile uint32_t rx_pos_write;
+extern volatile uint32_t rx_pos_read;
+
 extern uint32_t rx_overfulls;
 extern uint32_t rx_count_max;
 

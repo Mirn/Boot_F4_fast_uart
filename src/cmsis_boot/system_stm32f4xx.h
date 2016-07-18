@@ -50,10 +50,15 @@
   * @{
   */
 
+//#define SystemCoreClockUpdate_ENABLED
+
 #ifdef SystemCoreClockUpdate_ENABLED
 extern uint32_t SystemCoreClock;          /*!< System Clock Frequency (Core Clock) */
 #else
-#define SystemCoreClock 160000000
+//#define SystemCoreClock 160000000
+//#define SystemCoreClock 168000000
+#define SystemCoreClock 147500000
+
 #endif
 
 

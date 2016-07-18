@@ -9,12 +9,17 @@
 #if !defined(SIMPLE_TEST) && !defined(TEST_PRINTF)
 void main(void)
 {
+#ifdef SystemCoreClockUpdate_ENABLED
+	SystemCoreClockUpdate();
+#endif
+
 	ticks_init();
+	//delay_ms(1000);
 	usart_init();
 
-	systick_on(1000);
-	__WFI();
-	__WFI();
+#ifdef SystemCoreClockUpdate_ENABLED
+	printf("SystemCoreClock\t%i\r\n", SystemCoreClock);
+#endif
 
 	recive_packets_init();
 	sfu_command_init();
@@ -23,7 +28,6 @@ void main(void)
 	{
 		recive_packets_worker();
 		recive_packets_print_stat();
-		__WFI();
 	}
 }
 #endif
