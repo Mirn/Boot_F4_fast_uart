@@ -126,7 +126,7 @@ begin
 
  device.port_name_serial := true;
  device.port_name := 'GM18_E_0010';
- device.port_speed := 921600;//500000;//115200;//
+ device.port_speed := 115200;//921600;//500000;//
  device.port_parity := NOPARITY;
  device.no_activate := true;
  device.task_open_with_reset := true;
@@ -235,12 +235,7 @@ end;
 
 procedure TForm1.onInfoString(sender:tobject; msg:string);
 begin
- msg := inttostr(round(milliseconds_get(dev_ms_timer))) + #9 + msg;
- milliseconds_start(dev_ms_timer);
-
- log_dev.write_str(msg);
- log_cmd.write_str(':');
- logfile_write_str(dev_filelog, msg);
+ onLog(sender, msg);
 end;
 
 procedure TForm1.onLogBoot(sender:tobject; msg:string);
@@ -251,7 +246,7 @@ begin
  msg := inttostr(device.TX_fifo_blocks.data_count)+#9 + msg;
 
  log_cmd.write_str(msg);
- log_dev.write_str(':');
+ //log_dev.write_str(':');
  logfile_write_str(cmd_filelog, msg);
 end;
 
@@ -261,7 +256,7 @@ begin
  milliseconds_start(dev_ms_timer);
 
  log_dev.write_str(msg);
- log_cmd.write_str(':');
+ //log_cmd.write_str(':');
  logfile_write_str(dev_filelog, msg);
 end;
 

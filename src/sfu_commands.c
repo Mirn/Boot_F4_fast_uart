@@ -184,7 +184,7 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 		uint32_t word_count = (size - 4) / 4;
 
 		//printf("WR:\t%08X\t%08X\t%u\r", body_addr, write_addr, word_count);
-		send_str("WR\r");
+		//send_str("WR\r");
 
 		if ((body_addr == write_addr) && (word_count > 0))
 		{

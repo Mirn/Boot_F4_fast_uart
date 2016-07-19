@@ -927,7 +927,10 @@ begin
  if not (stm32_task_read or stm32_task_RDlock or stm32_task_UNlock or stm32_task_erase or stm32_task_write or stm32_task_verify) then
   stm32_info_string:='Reset ARMka';
 
- COM_init_as(port_speed, EVENPARITY);
+ if task_open_with_reset then
+  COM_init_as(port_speed, NOPARITY)
+ else
+  COM_init_as(port_speed, EVENPARITY);
 
  DTR := DTR_CLEAR;
  tiny_state := true;

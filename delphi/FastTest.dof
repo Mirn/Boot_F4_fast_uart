@@ -51,7 +51,7 @@ Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
-RunParams=-go -fast E:\gsm\lab\Firmware\Gate_Tester_41b.bin
+RunParams=-go -fast -reset E:\gsm\lab\Firmware\Gate_Tester_41b.bin
 HostApplication=
 Launcher=
 UseLauncher=0

@@ -107,6 +107,11 @@ var
  pos : integer;
  body : array of byte absolute cmd_body;
 begin
+ if (size mod 4) <> 0 then
+  begin
+   log('tSFUcmd.send_command ERROR: size mod 4 <> 0');
+   exit;
+  end;
  send_buf[0] := (PACKET_SIGN_TX shr 24) and $FF;
  send_buf[1] := (PACKET_SIGN_TX shr 16) and $FF;
  send_buf[2] := (PACKET_SIGN_TX shr  8) and $FF;

@@ -308,6 +308,8 @@ begin
  if final_block_addr <> 0 then
   if addr = final_block_addr then
    begin
+    if @tx_reset_func <> nil then
+     tx_reset_func();
     write_done := true;
     progress_max := firmware_size;
     progress_pos := progress_max;
@@ -328,7 +330,7 @@ begin
      firmware_addr := addr;
      final_block_addr := 0;
 
-     send_write_multi(80);
+     send_write_multi(64);
     end
    else
     begin
@@ -447,13 +449,16 @@ begin
      final_block_addr := firmware_addr + count;
    end;
 
+ //log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count)); log('');
+
  if count <= 0 then
   exit;
 
- //log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count)); log('');
  move(firmware_buf[pos], body[4], count);
  CommandSend(SFU_CMD_WRITE, @body[0], count + 4);
- firmware_addr := firmware_addr + count;
+
+ if (firmware_addr - firmware_start) + count < firmware_size then
+  firmware_addr := firmware_addr + count;
 end;
 
 procedure tSFUboot.send_write_multi(count:integer);

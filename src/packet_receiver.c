@@ -107,11 +107,8 @@ static bool recive_check_start()
 		recive_check = recive_check_info;
 		return false;
 	}
-
-	stat_error_start++;
-	if ((stat_error_start > 5) && (stat_error_start < 100))
-		printf("%02X ", rx);
-
+	else
+		stat_error_start++;
 	return false;
 }
 
@@ -129,7 +126,7 @@ static bool recive_check_info()
 	packet_size = (((uint16_t)packet_buf[2]) << 0) |
 				  (((uint16_t)packet_buf[3]) << 8);
 
-	if (packet_size > PACKET_MAX_SIZE)
+	if ((packet_size > PACKET_MAX_SIZE) || ((packet_size % 4) != 0))
 		return ERROR_RESET("Size", &stat_error_size);
 
 	packet_body = &packet_buf[4];
@@ -252,7 +249,6 @@ void recive_packets_worker()
 	{
 		stat_error_timeout++;
 		recive_packets_init();
-		send_str("Timeout\r");
 		sfu_command_timeout();
 	}
 
