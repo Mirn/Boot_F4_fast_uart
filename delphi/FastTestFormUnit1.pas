@@ -126,7 +126,7 @@ begin
 
  device.port_name_serial := true;
  device.port_name := 'GM18_E_0010';
- device.port_speed := 115200;//921600;//500000;//
+ device.port_speed := 500000;//115200;//921600;//
  device.port_parity := NOPARITY;
  device.no_activate := true;
  device.task_open_with_reset := true;
@@ -349,7 +349,11 @@ begin
     '  Timeout: ' + inttostr(sfu.stat_error_timeout) +
     '  code: ' + inttostr(sfu.stat_error_code) +
     '  size: ' + inttostr(sfu.stat_error_size) +
-    '  crc: ' + inttostr(sfu.stat_error_crc);
+    '  crc: ' + inttostr(sfu.stat_error_crc) +
+    ' --- ' +
+    ' over: ' + inttostr(device.TX_fifo_blocks.stat_blocks_overfulled + device.TX_fifo_blocks.stat_bytes_overfulled) +
+    ' lost: ' + inttostr(device.TX_fifo_blocks.stat_blocks_lost + device.TX_fifo_blocks.stat_bytes_lost) +
+    '';
 
  SFUboot_StatusLabel.Caption := boot.task_info;
  if (boot.task_done = false) and (boot.task_error = false) then SFUboot_StatusLabel.Font.Color := rgb(  0,   0,   0);

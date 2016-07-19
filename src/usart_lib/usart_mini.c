@@ -29,9 +29,9 @@
 
 #include "usart_mini.h"
 
-//#define USART_BOD 500000
+#define USART_BOD 500000
 //#define USART_BOD 921600
-#define USART_BOD 115200
+//#define USART_BOD 115200
 
 uint8_t rx_buffer[0x20000]  __attribute__ ((section (".usart_mini_rx_buffer"), used));
 

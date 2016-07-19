@@ -281,9 +281,12 @@ begin
  log(' ');
 
  firmware_start := info_addr_from;
+ firmware_addr  := info_addr_from;
+ final_block_addr := 0;
 
  erase_done := true;
- send_timeout := GetTickCount;
+ //send_timeout := GetTickCount;
+ send_write_multi(64);
 end;
 
 procedure tSFUboot.recive_write(body:pbyte; count:word);
@@ -303,7 +306,6 @@ begin
  rxed := body_get_cardinal(body, count);
 
  log('WR: 0x'+inttohex(addr, 8) + #9 + inttostr(free) + #9 + inttostr(rxed));
-// log('WR: 0x'+inttohex(addr, 8) + #9 + inttostr(free) + #9 + inttostr(rxed) + #9 + inttohex(final_block_addr, 8));
 
  if not write_done then
   if final_block_addr <> 0 then
