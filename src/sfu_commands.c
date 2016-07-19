@@ -212,12 +212,9 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 		}
 	}
 
-	uint32_t free = recive_free();
-	uint32_t count = recive_count();
-
 	serialize_uint32(body + 0, write_addr);
-	serialize_uint32(body + 4, free);
-	serialize_uint32(body + 8, count);
+	serialize_uint32(body + 4, recive_free());
+	serialize_uint32(body + 8, recive_count());
 
 	packet_send(code, body, 12);
 }

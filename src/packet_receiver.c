@@ -223,6 +223,7 @@ void recive_packets_print_stat()
 	//printf("%i\t", rx_pos_read);
 	//printf("%i\t", rx_pos_write);
 	printf("%i\t", rx_overfulls);
+	printf("%i\t", rx_errors);
 	printf("%i\t", rx_count_max);
 	printf("\t");
 	printf("%i\t", stat_error_timeout);

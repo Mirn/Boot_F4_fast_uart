@@ -126,7 +126,7 @@ begin
 
  device.port_name_serial := true;
  device.port_name := 'GM18_E_0010';
- device.port_speed := 500000;//115200;//921600;//
+ device.port_speed := 921600;//500000;//115200;//
  device.port_parity := NOPARITY;
  device.no_activate := true;
  device.task_open_with_reset := true;

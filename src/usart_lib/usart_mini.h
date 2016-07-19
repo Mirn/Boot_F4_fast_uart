@@ -12,6 +12,7 @@
 extern volatile uint32_t rx_pos_write;
 extern volatile uint32_t rx_pos_read;
 
+extern uint32_t rx_errors;
 extern uint32_t rx_overfulls;
 extern uint32_t rx_count_max;
 

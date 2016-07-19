@@ -29,8 +29,8 @@
 
 #include "usart_mini.h"
 
-#define USART_BOD 500000
-//#define USART_BOD 921600
+//#define USART_BOD 500000
+#define USART_BOD 921600
 //#define USART_BOD 115200
 
 uint8_t rx_buffer[0x20000]  __attribute__ ((section (".usart_mini_rx_buffer"), used));
@@ -38,6 +38,7 @@ uint8_t rx_buffer[0x20000]  __attribute__ ((section (".usart_mini_rx_buffer"), u
 volatile uint32_t rx_pos_write = 0;
 volatile uint32_t rx_pos_read  = 0;
 
+uint32_t rx_errors = 0;
 uint32_t rx_overfulls = 0;
 uint32_t rx_count_max = 0;
 
@@ -103,7 +104,7 @@ void USART1_IRQHandler(void)
 		rx_pos_write++;
 	}
 
-	if (USART_GetITStatus_inline(USART1, USART_IT_ORE_RX) != RESET) {USART_ReceiveData_inline(USART1);};
+	if (USART_GetITStatus_inline(USART1, USART_IT_ORE_RX) != RESET) {USART_ReceiveData_inline(USART1); rx_errors++;};
 //	if (USART_GetITStatus_inline(USART1, USART_IT_ORE_ER) != RESET) {send('2'); };
 //	if (USART_GetITStatus_inline(USART1, USART_IT_NE    ) != RESET) {send('3'); };
 //	if (USART_GetITStatus_inline(USART1, USART_IT_FE    ) != RESET) {send('4'); };
