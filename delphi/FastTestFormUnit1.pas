@@ -197,7 +197,7 @@ var
  index : integer;
  str : string;
 const
- DEV_KEY : string = '-CP210X:';
+ DEV_KEY : string = '-DEV:';
 begin
  auto_run := false;
  if ParamCount > 0 then
@@ -443,6 +443,9 @@ begin
    device.no_activate := true;
   end;
 
+ device.port_name := DeviceEdit.Text;
+ device.port_name_serial := (device.port_name <> '') and (copy(device.port_name, 1, 3) <> 'COM');
+
  device.Open;
  start_time := GetTickCount;
  while (GetTickCount - start_time) < 5000 do
@@ -466,9 +469,6 @@ begin
   end;
 
  boot.firmware_fname := FirmwareEdit.Text;
-
- device.port_name := DeviceEdit.Text;
- device.port_name_serial := (device.port_name <> '');
 
  milliseconds_start(cmd_ms_timer);
  milliseconds_start(dev_ms_timer);

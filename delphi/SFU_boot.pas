@@ -305,19 +305,21 @@ begin
  log('WR: 0x'+inttohex(addr, 8) + #9 + inttostr(free) + #9 + inttostr(rxed));
 // log('WR: 0x'+inttohex(addr, 8) + #9 + inttostr(free) + #9 + inttostr(rxed) + #9 + inttohex(final_block_addr, 8));
 
- if final_block_addr <> 0 then
-  if addr = final_block_addr then
-   begin
-    if @tx_reset_func <> nil then
-     tx_reset_func();
-    write_done := true;
-    progress_max := firmware_size;
-    progress_pos := progress_max;
-    log('Write Done');
-    log(' ');
-    send_timeout := GetTickCount;
-    exit;
-   end;
+ if not write_done then
+  if final_block_addr <> 0 then
+   if addr = final_block_addr then
+    begin
+     if @tx_reset_func <> nil then
+      tx_reset_func();
+
+     write_done := true;
+     progress_max := firmware_size;
+     progress_pos := progress_max;
+     log('Write Done');
+     log(' ');
+     send_timeout := GetTickCount;
+     exit;
+    end;
 
  if not write_done then
   begin
@@ -345,7 +347,9 @@ begin
          send_write_multi(4);
         end;
       end;
-     send_write;
+
+     if final_block_addr = 0 then
+      send_write;
     end;
   end;
 
