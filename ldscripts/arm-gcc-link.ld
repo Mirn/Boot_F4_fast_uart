@@ -33,11 +33,12 @@ SECTIONS
 { 
     .text : 
     { 
-	   	. = 0x00000000;
+	   	//. = 0x00000000;
+    	__rom_from = .;
         KEEP(*(.isr_vector .isr_vector.*)) 
         *(.text .text.* .gnu.linkonce.t.*) 	      
         *(.glue_7t) *(.glue_7)		                
-        *(.rodata .rodata* .gnu.linkonce.r.*)		    	                  
+        *(.rodata .rodata* .gnu.linkonce.r.*)
     } > rom
     
     .ARM.extab : 
@@ -49,6 +50,7 @@ SECTIONS
     .ARM.exidx :
     {
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+        __rom_to = .;
     } > rom
     __exidx_end = .;
     
@@ -61,15 +63,11 @@ SECTIONS
     } > ram
 
     /*. = ALIGN(4);*/
-    . = 0x08000000 + 0x2000 - SIZEOF(.data);
+    //. = 0x08000000 + 0x2000 - SIZEOF(.data);
+    . = 0x08000000 + (__rom_to - __rom_from);
     _etext = .;
-    _sidata = .;     
+    _sidata = .;
     		
-    .rxbuf (NOLOAD) : 
-    {
-    	KEEP(*(.usart_mini_rx_buffer*))
-    } > buf
-    
     /* .bss section which is used for uninitialized data */ 
     .bss (NOLOAD) : 
     { 
@@ -97,6 +95,11 @@ SECTIONS
         . = ALIGN(8);
         *(.co_stack .co_stack.*)
     } > ccm
+    
+    .rxbuf (NOLOAD) : 
+    {
+    	KEEP(*(.usart_mini_rx_buffer*))
+    } > buf
     
     . = ALIGN(4); 
     _end = . ; 

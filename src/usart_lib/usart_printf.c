@@ -23,7 +23,7 @@ const char src_ver_usart_printf[] = __DATE__"\t"__TIME__"\t" __FILE__"\r";
  * @param  pStr	Storage string.
  * @param  c    Character to write.
  */
-void PrintChar(char c)
+static inline void PrintChar(char c)
 {
 	send(c);
 }
@@ -43,7 +43,7 @@ void PrintChar(char c)
  * @param  pStr	Storage string.
  * @param  c    Character to write.
  */
-signed int PutChar(char *pStr, char c)
+static inline signed int PutChar(char *pStr, char c)
 {
     *pStr = c;
     return 1;
@@ -61,8 +61,8 @@ signed int PutString(char *pStr, const char *pSource)
 {
     signed int num = 0;
 
-    if (pSource == NULL)
-    	return PutString(pStr, "<NULL>");
+    //if (pSource == NULL)
+    //	return PutString(pStr, "<NULL>");
 
     while (*pSource != 0) {
 
@@ -279,11 +279,11 @@ signed int vsnprintf(char *pStr, size_t length, const char *pFormat, va_list ap)
     signed int    num = 0;
     signed int    size = 0;
 
-    /* Clear the string */
-    if (pStr) {
-
-        *pStr = 0;
-    }
+//    /* Clear the string */
+//    if (pStr) {
+//
+//        *pStr = 0;
+//    }
 
     /* Phase string */
     while (*pFormat != 0 && size < length) {
@@ -332,11 +332,11 @@ signed int vsnprintf(char *pStr, size_t length, const char *pFormat, va_list ap)
             switch (*pFormat) {
             case 'd':
             case 'i': num = PutSignedInt(pStr, fill, width, va_arg(ap, signed int)); break;
-            case 'u': num = PutUnsignedInt(pStr, fill, width, va_arg(ap, unsigned int)); break;
-            case 'x': num = PutHexa(pStr, fill, width, 0, va_arg(ap, unsigned int)); break;
-            case 'X': num = PutHexa(pStr, fill, width, 1, va_arg(ap, unsigned int)); break;
-            case 's': num = PutString(pStr, va_arg(ap, char *)); break;
-            case 'c': num = PutChar(pStr, va_arg(ap, unsigned int)); break;
+            //case 'u': num = PutUnsignedInt(pStr, fill, width, va_arg(ap, unsigned int)); break;
+            //case 'x': num = PutHexa(pStr, fill, width, 0, va_arg(ap, unsigned int)); break;
+            //case 'X': num = PutHexa(pStr, fill, width, 1, va_arg(ap, unsigned int)); break;
+            //case 's': num = PutString(pStr, va_arg(ap, char *)); break;
+            //case 'c': num = PutChar(pStr, va_arg(ap, unsigned int)); break;
             default:
                 return EOF;
             }
@@ -347,16 +347,16 @@ signed int vsnprintf(char *pStr, size_t length, const char *pFormat, va_list ap)
         }
     }
 
-    /* NULL-terminated (final \0 is not counted) */
-    if (size < length) {
-
-        *pStr = 0;
-    }
-    else {
-
-        *(--pStr) = 0;
-        size--;
-    }
+//    /* NULL-terminated (final \0 is not counted) */
+//    if (size < length) {
+//
+//        *pStr = 0;
+//    }
+//    else {
+//
+//        *(--pStr) = 0;
+//        size--;
+//    }
 
     return size;
 }
@@ -412,19 +412,21 @@ signed int vsprintf(char *pString, const char *pFormat, va_list ap)
  */
 signed int vfprintf(FILE *pStream, const char *pFormat, va_list ap)
 {
-    static char pStr[MAX_STRING_SIZE] = {[0 ... MAX_STRING_SIZE-1] = 0};
-    char pError[] = "stdio.c: increase MAX_STRING_SIZE\n\r";
-    memset(pStr, 0, MAX_STRING_SIZE);
+    char pStr[MAX_STRING_SIZE];   // = {[0 ... MAX_STRING_SIZE-1] = 0};
+    //memset(pStr, 0, MAX_STRING_SIZE);
 
+    uint32_t count = vsnprintf(pStr, MAX_STRING_SIZE, pFormat, ap);
+    send_block((uint8_t *)pStr, count);
+    return count;
     /* Write formatted string in buffer */
-    if (vsprintf(pStr, pFormat, ap) >= MAX_STRING_SIZE) {
-
-        fputs(pError, NULL); //stderr);
-        while (1); /* Increase MAX_STRING_SIZE */
-    }
+//    if (vsprintf(pStr, pFormat, ap) >= MAX_STRING_SIZE) {
+//        char pError[] = "stdio.c: increase MAX_STRING_SIZE\n\r";
+//        fputs(pError, NULL); //stderr);
+//        while (1); /* Increase MAX_STRING_SIZE */
+//    }
 
     /* Display string */
-    return fputs(pStr, pStream);
+//    return fputs(pStr, pStream);
 }
 
 
@@ -475,7 +477,7 @@ signed int printf(const char *pFormat, ...)
 
     /* Forward call to vprintf */
     va_start(ap, pFormat);
-    result = vprintf(pFormat, ap);
+    result = vfprintf(NULL, pFormat, ap); //vprintf(pFormat, ap);//
     va_end(ap);
 
     return result;

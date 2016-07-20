@@ -199,43 +199,31 @@ void packet_send(const uint8_t code, const uint8_t *body, const uint32_t size)
 
 ///////////////////////////////////////////////////////
 
-void test_send()
-{
-	const uint8_t test_code = stat_error_timeout;
-	char test_body[12] = "";
-	static uint32_t num = 0;
-
-	snprintf(test_body, sizeof(test_body), "Test: %05X", num++);
-	packet_send(test_code, (uint8_t*)test_body, sizeof(test_body));
-}
-
 void recive_packets_print_stat()
 {
-#ifndef PRINTF_DISABLED
 	static uint32_t last_time = 0;
 	uint32_t now_time = DWT_CYCCNT;
 
 	if ((now_time - last_time) < SystemCoreClock)
-		return;// test_send();
+		return;
 	last_time = now_time;
 
-	printf("%i\t", rx_overfulls);
-	printf("%i\t", rx_errors);
-	printf("%i\t", rx_count_max);
-	printf("\t");
-	printf("%i\t", stat_error_timeout);
-	printf("%i\t", stat_error_overfull);
-	printf("\t");
-	printf("%i\t", stat_normals);
-	printf("%i\t", stat_error_start);
-	printf("%i\t", stat_error_code);
-	printf("%i\t", stat_error_size);
-	printf("%i\t", stat_error_crc);
-	printf("\r");
+	printf("%i\t%i\t%i\t" "\t" "%i\t%i\t" "\t" "%i\t%i\t%i\t%i\t%i\t\r",
+			rx_overfulls,
+			rx_errors,
+			rx_count_max,
+
+			stat_error_timeout,
+			stat_error_overfull,
+
+			stat_normals,
+			stat_error_start,
+			stat_error_code,
+			stat_error_size,
+			stat_error_crc
+	);
 
 	rx_count_max = 0;
-	//test_send();
-#endif
 }
 
 ///////////////////////////////////////////////////////
