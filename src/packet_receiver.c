@@ -219,9 +219,6 @@ void recive_packets_print_stat()
 		return;// test_send();
 	last_time = now_time;
 
-	//printf("\r");
-	//printf("%i\t", rx_pos_read);
-	//printf("%i\t", rx_pos_write);
 	printf("%i\t", rx_overfulls);
 	printf("%i\t", rx_errors);
 	printf("%i\t", rx_count_max);

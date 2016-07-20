@@ -76,33 +76,63 @@ object Form1: TForm1
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object MemoDevice: TMemo
+  object Cap1Label: TLabel
     Left = 8
-    Top = 8
-    Width = 865
-    Height = 717
-    Anchors = [akLeft, akTop, akBottom]
+    Top = 2
+    Width = 405
+    Height = 17
+    Anchors = [akLeft, akBottom]
+    Caption = 'mSec     Com Device and Boot packet level log'
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
-    Font.Height = -16
+    Font.Height = -15
     Font.Name = 'Courier New'
     Font.Style = [fsBold]
     ParentFont = False
+  end
+  object Cap2Label: TLabel
+    Left = 880
+    Top = 2
+    Width = 351
+    Height = 17
+    Anchors = [akLeft, akBottom]
+    Caption = 'mSec    hstFifo Boot commands level log'
+    Font.Charset = RUSSIAN_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -15
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object MemoDevice: TMemo
+    Left = 8
+    Top = 16
+    Width = 865
+    Height = 709
+    Anchors = [akLeft, akTop, akBottom]
+    Font.Charset = RUSSIAN_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -15
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentFont = False
+    ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 0
   end
   object MemoCMD: TMemo
     Left = 880
-    Top = 8
+    Top = 16
     Width = 642
-    Height = 717
+    Height = 709
     Anchors = [akLeft, akTop, akBottom]
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
-    Font.Height = -16
+    Font.Height = -15
     Font.Name = 'Courier New'
     Font.Style = [fsBold]
     ParentFont = False
+    ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 1
   end
@@ -252,9 +282,9 @@ object Form1: TForm1
     Left = 40
     Top = 24
   end
-  object Timer100ms: TTimer
-    Interval = 100
-    OnTimer = Timer100msTimer
+  object Timer32ms: TTimer
+    Interval = 32
+    OnTimer = Timer32msTimer
     Left = 80
     Top = 64
   end

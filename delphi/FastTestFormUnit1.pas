@@ -21,7 +21,7 @@ type
     MemoCMD: TMemo;
     StatLabel: TLabel;
     ProgressBar: TProgressBar;
-    Timer100ms: TTimer;
+    Timer32ms: TTimer;
     StopCheckBox: TCheckBox;
     GoButton: TButton;
     SFUboot_StatusLabel: TLabel;
@@ -34,10 +34,12 @@ type
     StopButton: TButton;
     ExitCheckBox: TCheckBox;
     OpenFWButton: TButton;
+    Cap1Label: TLabel;
+    Cap2Label: TLabel;
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Timer1mSTimer(Sender: TObject);
-    procedure Timer100msTimer(Sender: TObject);
+    procedure Timer32msTimer(Sender: TObject);
     procedure GoButtonClick(Sender: TObject);
     procedure StopButtonClick(Sender: TObject);
     procedure OpenFWButtonClick(Sender: TObject);
@@ -51,8 +53,8 @@ type
     cmd_ms_timer : tmillisecond_timer;
     dev_ms_timer : tmillisecond_timer;
 
-    log_cmd : tfifo_blocks;
-    log_dev : tfifo_blocks;
+    log_fifo_cmd : tfifo_blocks;
+    log_fifo_dev : tfifo_blocks;
 
     current_dir : string;
 
@@ -63,13 +65,11 @@ type
     start_count : integer;
     form_closed : boolean; //TO DO: сделать нормально!
 
-    procedure onLog(sender:tobject; msg:string);
-    procedure onLogBoot(sender:tobject; msg:string);
-    procedure onInfoString(sender:tobject; msg:string);
-    procedure onLogBegin(sender:tLinkClient);
-    procedure onLogEnd(sender:tLinkClient);
+    procedure LogAdd(log_fifo:tfifo_blocks; msg:string);
+    procedure LogMemoUpdate(log_fifo:tfifo_blocks; memo:tmemo);
 
-    procedure onCommand(code:byte; body:pbyte; count:word);
+    procedure onLogDev(sender:tobject; msg:string);
+    procedure onLogBoot(sender:tobject; msg:string);
 
     procedure OnDone_OnError;
   public
@@ -81,7 +81,7 @@ var
 implementation
 
 {$R *.dfm}
-{$R windowsxp.RES}
+//{$R windowsxp.RES}
 
 procedure logfile_create(var f:file; name:string);
 begin
@@ -106,8 +106,8 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
- log_dev := tfifo_blocks.create($10000, $4000);
- log_cmd := tfifo_blocks.create($10000, $4000);
+ log_fifo_dev := tfifo_blocks.create($10000, $4000);
+ log_fifo_cmd := tfifo_blocks.create($10000, $4000);
 
  self.DoubleBuffered := true;
  MemoDevice.DoubleBuffered := true;
@@ -120,9 +120,7 @@ begin
 
  device := tCOMClient.Create($10000, $4000);//, $2000, $2000);
 
- device.onLog := self.onLog;
- device.onLogBegin := self.onLogBegin;
- device.onLogEnd := self.onLogEnd;
+ device.onLog := self.onLogDev;
 
  device.port_speed := 921600;//500000;//115200;//
  device.port_parity := NOPARITY;
@@ -142,8 +140,8 @@ begin
 
  sfu := tSFUcmd.create;
  sfu.onWrite := device.Write;
- sfu.onLog := self.onLog;
- sfu.onInfoString := self.onInfoString;
+ sfu.onLog := self.onLogDev;
+ sfu.onInfoString := self.onLogDev;
  //sfu.onCommand := self.onCommand;
 
  boot := tSFUboot.create(sfu.send_command);
@@ -170,11 +168,11 @@ begin
  FreeAndNil(device);
  FreeAndNil(sfu);
  FreeAndNil(boot);
- FreeAndNil(log_cmd);
- FreeAndNil(log_dev);
+ FreeAndNil(log_fifo_cmd);
+ FreeAndNil(log_fifo_dev);
 
- Timer100ms.Enabled := false;
- Timer100ms.onTimer := nil;
+ Timer32ms.Enabled := false;
+ Timer32ms.onTimer := nil;
  Timer1ms.Enabled := false;
  Timer1ms.onTimer := nil;
 
@@ -231,65 +229,48 @@ end;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-procedure TForm1.onInfoString(sender:tobject; msg:string);
+procedure TForm1.LogAdd(log_fifo:tfifo_blocks; msg:string);
 begin
- onLog(sender, msg);
+ log_fifo.write_str(msg);
+ //log_fifo_dev.write_str(':');
+ if log_fifo = log_fifo_dev then logfile_write_str(dev_filelog, msg);
+ if log_fifo = log_fifo_cmd then logfile_write_str(cmd_filelog, msg);
+end;
+
+procedure TForm1.LogMemoUpdate(log_fifo:tfifo_blocks; memo:tmemo);
+begin
+ if log_fifo <> nil then
+ if log_fifo.blocks_count > 0 then
+  begin
+   memo.Lines.BeginUpdate;
+   while log_fifo.blocks_count > 0 do
+    memo.Lines.Add(log_fifo.read_str());
+   memo.Lines.EndUpdate;
+   SendMessage(memo.Handle, EM_LINESCROLL, 0, memo.Lines.Count);
+  end;
 end;
 
 procedure TForm1.onLogBoot(sender:tobject; msg:string);
 begin
+ msg := inttostr(device.TX_fifo_blocks.data_count) + #9 + msg;
+
  msg := inttostr(round(milliseconds_get(cmd_ms_timer))) + #9 + msg;
  milliseconds_start(cmd_ms_timer);
 
- msg := inttostr(device.TX_fifo_blocks.data_count)+#9 + msg;
-
- log_cmd.write_str(msg);
- //log_dev.write_str(':');
- logfile_write_str(cmd_filelog, msg);
+ LogAdd(log_fifo_cmd, msg);
 end;
 
-procedure TForm1.onLog(sender:tobject; msg:string);
+procedure TForm1.onLogDev(sender:tobject; msg:string);
 begin
  msg := inttostr(round(milliseconds_get(dev_ms_timer))) + #9 + msg;
  milliseconds_start(dev_ms_timer);
 
- log_dev.write_str(msg);
- //log_cmd.write_str(':');
- logfile_write_str(dev_filelog, msg);
-end;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-procedure TForm1.onLogBegin(sender:tLinkClient);
-begin
- MemoDevice.Lines.BeginUpdate;
-end;
-
-procedure TForm1.onLogEnd(sender:tLinkClient);
-begin
- MemoDevice.Lines.EndUpdate;
+ LogAdd(log_fifo_dev, msg);
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-procedure TForm1.onCommand(code:byte; body:pbyte; count:word);
-var
- str : string;
- cnt : integer;
-begin
- str := '';
- cnt := count;
- while cnt > 0 do
-  begin
-    str := str + inttohex(body^, 2) + ' ';
-   inc(body);
-   dec(cnt);
-  end;
-
- MemoCMD.Lines.Add('CMD('+inttohex(code, 2)+'#'+inttohex(count, 2)+'): ' + str);
-end;
 
 procedure TForm1.Timer1mSTimer(Sender: TObject);
 begin
@@ -304,7 +285,7 @@ begin
  boot.next_send;
 end;
 
-procedure TForm1.Timer100msTimer(Sender: TObject);
+procedure TForm1.Timer32msTimer(Sender: TObject);
 begin
  if auto_run then
   begin
@@ -317,26 +298,9 @@ begin
  if sfu = nil then exit;
  if boot = nil then exit;
 
- if log_dev <> nil then
- if log_dev.blocks_count > 0 then
-  begin
-   MemoDevice.Lines.BeginUpdate;
-   while log_dev.blocks_count > 0 do
-    MemoDevice.Lines.Add(log_dev.read_str());
-   MemoDevice.Lines.EndUpdate;
-   SendMessage(MemoDevice.Handle, EM_LINESCROLL, 0, MemoDevice.Lines.Count);
-  end;
+ LogMemoUpdate(log_fifo_dev, MemoDevice);
+ LogMemoUpdate(log_fifo_cmd, MemoCMD);
 
- if log_cmd <> nil then
- if log_cmd.blocks_count > 0 then
-  begin
-   MemoCMD.Lines.BeginUpdate;
-   while log_cmd.blocks_count > 0 do
-    MemoCMD.Lines.Add(log_cmd.read_str());
-   MemoCMD.Lines.EndUpdate;
-   SendMessage(MemoCMD.Handle, EM_LINESCROLL, 0, MemoCMD.Lines.Count);
-  end;
-  
  StatLabel.Caption :=
     'TXok: ' + inttostr(sfu.stat_send) +
     '  RXok: ' + inttostr(sfu.stat_normals) +
@@ -418,6 +382,19 @@ procedure TForm1.GoButtonClick(Sender: TObject);
 var
  start_time : cardinal;
 begin
+ if (MemoCMD.Lines.Count <> 0) or
+    (MemoDevice.Lines.Count <> 0) then
+  begin
+   LogAdd(log_fifo_cmd, ' ');
+   LogAdd(log_fifo_dev, ' ');
+   LogAdd(log_fifo_cmd, '====================================================================');
+   LogAdd(log_fifo_dev, '====================================================================');
+   LogAdd(log_fifo_cmd, '====================================================================');
+   LogAdd(log_fifo_dev, '====================================================================');
+   LogAdd(log_fifo_cmd, ' ');
+   LogAdd(log_fifo_dev, ' ');
+  end;
+
  inc(start_count);
  StopButton.Left := GoButton.left;
  StopButton.Top := GoButton.Top;
@@ -464,13 +441,14 @@ begin
   begin
    boot.task_error := true;
    boot.task_info := 'Device open timeout ERROR';
-   onLog(self, 'Device open timeout ERROR');
+   onLogDev(self, 'Device open timeout ERROR');
    device.Close;
    OnDone_OnError;
    exit;
   end;
 
  boot.firmware_fname := FirmwareEdit.Text;
+ boot.opt_prewrite := true;
 
  milliseconds_start(cmd_ms_timer);
  milliseconds_start(dev_ms_timer);

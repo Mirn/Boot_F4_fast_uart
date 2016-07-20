@@ -248,6 +248,7 @@ static void sfu_command_start(uint8_t code, uint8_t *body, uint32_t size)
 	{
 		write_addr = 0;
 
+		send('\r');
 		send_str("CRC OK\r");
 
 		uint32_t *boot_from = (uint32_t*)MAIN_RUN_FROM;

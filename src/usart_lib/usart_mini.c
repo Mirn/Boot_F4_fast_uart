@@ -124,6 +124,7 @@ bool recive_byte(uint8_t *rx_data)
 	{
 		rx_pos_read = rx_pos_write + 1 - sizeof(rx_buffer);
 		rx_overfulls++;
+		send_str("Over!\r");
 	}
 
 	*rx_data = rx_buffer[rx_pos_read % sizeof(rx_buffer)];

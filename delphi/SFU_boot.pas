@@ -3,7 +3,7 @@ unit SFU_boot;
 interface
 
 type
- tSFUboot_CommandSend = procedure (code:byte; cmd_body:pointer = nil; size:word = 0) of object;
+ tSFUboot_CommandSend = function(code:byte; cmd_body:pointer = nil; size:word = 0):cardinal of object;
  tSFUboot_EventLog = procedure(sender:tobject; msg:string) of object;
  tSFUboot_tx_free_func = function:integer of object;
  tSFUboot_tx_reset_func = procedure of object;
@@ -45,6 +45,9 @@ type
   last_writed_addr : cardinal;
   last_corrected_addr : cardinal;
 
+  write_block_packet_size : cardinal;
+  prewrite_bytes_free : cardinal;
+
   procedure log(msg:string);
   procedure log_block_hex(msg:string; block:pbyte; count:integer);
   procedure log_block_ascii(msg:string; block:pbyte; count:integer);
@@ -85,6 +88,7 @@ type
   task_info : ansistring;
 
   opt_fast_erase : boolean;
+  opt_prewrite : boolean;
 
   constructor create(send: tSFUboot_CommandSend);
 
@@ -233,7 +237,7 @@ procedure tSFUboot.recive_info(body:pbyte; count:word);
 begin
  if count <> 32 then
   begin
-   error_stop('ERROR: recive_info: count <> 28');
+   error_stop('ERROR: recive_info: count <> 32');
    exit;
   end;
 
@@ -253,7 +257,7 @@ begin
  log_block_ascii('ChipID: ', @info_chip_id[0], sizeof(info_chip_id));
  log('Dev type  : 0x' + inttohex(info_dev_type, 4));
  log('Dev rev   : 0x' + inttohex(info_dev_rev, 4));
- log('FlashSize : ' + inttostr(info_flash_size * 1024));
+ log('FlashSize : '   + inttostr(info_flash_size * 1024));
  log('Boot ver  : 0x' + inttohex(info_boot_ver, 4));
  log('RX fifo   : 0x' + inttohex(info_rx_size, 8));
  log('Addr from : 0x' + inttohex(info_addr_from, 8));
@@ -261,14 +265,39 @@ begin
  log(' ');
 
  firmware_start := info_addr_from;
+ firmware_addr  := info_addr_from;
+ final_block_addr := 0;
+
+ prewrite_bytes_free := info_rx_size - WRITE_BLOCK_SIZE*2;
 
  info_done := true;
  send_timeout := GetTickCount;
 end;
 
 procedure tSFUboot.recive_erase_page(body:pbyte; count:word);
+var
+ log_str : string;
+ sended_count : integer;
 begin
- log('Erase sector #' + inttostr(body_get_cardinal(body, count) + 1));
+ log_str := 'Erase sector #' + inttostr(body_get_cardinal(body, count) + 1);
+
+ if opt_prewrite then
+  if @tx_free_func <> nil then
+   begin
+    sended_count := 0;
+    while (tx_free_func() >= write_block_packet_size) and
+          (sended_count < 64) and
+          (prewrite_bytes_free >= write_block_packet_size) do
+     begin
+      send_write;
+      inc(sended_count);
+      dec(prewrite_bytes_free, write_block_packet_size);
+     end;
+   if sended_count > 0 then
+    log_str := log_str + '. Prewrite packets: ' + inttostr(sended_count) + ', free : ' + inttostr(prewrite_bytes_free);
+  end;
+
+ log(log_str);
  send_timeout := GetTickCount + 2000;
 end;
 
@@ -283,13 +312,9 @@ begin
   log('Erase DONE');
  log(' ');
 
- firmware_start := info_addr_from;
- firmware_addr  := info_addr_from;
- final_block_addr := 0;
-
  erase_done := true;
- //send_timeout := GetTickCount;
  send_write_multi(64);
+ send_timeout := GetTickCount + 200;
 end;
 
 procedure tSFUboot.recive_write(body:pbyte; count:word);
@@ -435,12 +460,21 @@ var
  count : integer;
  pos : integer;
 begin
+ if @tx_free_func <> nil then
+  if tx_free_func() < write_block_packet_size then
+   exit;
+
  body[0] := (firmware_addr shr  0) and $FF;
  body[1] := (firmware_addr shr  8) and $FF;
  body[2] := (firmware_addr shr 16) and $FF;
  body[3] := (firmware_addr shr 24) and $FF;
 
  pos := firmware_addr - firmware_start;
+ if (pos < 0) or (pos > (Length(firmware_buf) - WRITE_BLOCK_SIZE)) then
+  begin
+   error_stop('ERROR: tSFUboot.send_write:  pos = ' + inttostr(pos));
+   exit;
+  end;
 
  if WRITE_BLOCK_SIZE > (firmware_size - pos) then
   count := firmware_size - pos
@@ -462,7 +496,7 @@ begin
   exit;
 
  move(firmware_buf[pos], body[4], count);
- CommandSend(SFU_CMD_WRITE, @body[0], count + 4);
+ write_block_packet_size := CommandSend(SFU_CMD_WRITE, @body[0], count + 4);
 
  if (firmware_addr - firmware_start) + count < firmware_size then
   firmware_addr := firmware_addr + count;
@@ -475,7 +509,7 @@ begin
  for pos := 0 to count-1 do
   begin
    if @tx_free_func <> nil then
-    if tx_free_func < (WRITE_BLOCK_SIZE*2) then
+    if tx_free_func() < write_block_packet_size then
      break;
    send_write;
   end;
@@ -542,6 +576,8 @@ begin
  info_boot_ver   := 0;
  info_addr_from  := 0;
  info_addr_run   := 0;
+
+ write_block_packet_size := WRITE_BLOCK_SIZE * 2;
 end;
 
 procedure tSFUboot.start(time_measure:boolean = false; fast_erase:boolean = false);

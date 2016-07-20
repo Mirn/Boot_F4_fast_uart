@@ -64,9 +64,11 @@ type
   onLog : tSFUcmd_EventLog;
 
   constructor create(write:tSFUcmd_EventWrite = nil; command:tSFUcmd_EventCommand = nil; infostring:tSFUcmd_EventInfoString = nil; log:tSFUcmd_EventLog = nil);
-  procedure send_command(code:byte; cmd_body:pointer = nil; size:word = 0);
-  procedure recive_reset;
+
+  function  send_command(code:byte; cmd_body:pointer = nil; size:word = 0):cardinal;
   procedure process_recive(sender:tLinkClient; data:pbyte; size:integer);
+
+  procedure recive_reset;
  end;
 
 implementation
@@ -101,7 +103,7 @@ end;
 ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
 
-procedure tSFUcmd.send_command(code:byte; cmd_body:pointer = nil; size:word = 0);
+function tSFUcmd.send_command(code:byte; cmd_body:pointer = nil; size:word = 0):cardinal;
 var
  crc : cardinal;
  pos : integer;
@@ -110,6 +112,7 @@ begin
  if (size mod 4) <> 0 then
   begin
    log('tSFUcmd.send_command ERROR: size mod 4 <> 0');
+   result := 0;
    exit;
   end;
  send_buf[0] := (PACKET_SIGN_TX shr 24) and $FF;
@@ -140,6 +143,8 @@ begin
  if @onWrite <> nil then
   onWrite(@send_buf[0], send_cnt);
  inc(stat_send);
+
+ result := send_cnt;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////
