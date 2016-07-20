@@ -38,6 +38,7 @@ type
   info_boot_ver : word;
   info_addr_from : cardinal;
   info_addr_run : cardinal;
+  info_rx_size : cardinal;
 
   start_time : cardinal;
 
@@ -230,7 +231,7 @@ end;
 
 procedure tSFUboot.recive_info(body:pbyte; count:word);
 begin
- if count <> 28 then
+ if count <> 32 then
   begin
    error_stop('ERROR: recive_info: count <> 28');
    exit;
@@ -243,6 +244,7 @@ begin
  info_flash_size := body_get_word(body, count);
  info_boot_ver   := body_get_word(body, count);
 
+ info_rx_size   := body_get_cardinal(body, count);
  info_addr_from := body_get_cardinal(body, count);
  info_addr_run  := body_get_cardinal(body, count);
 
@@ -253,6 +255,7 @@ begin
  log('Dev rev   : 0x' + inttohex(info_dev_rev, 4));
  log('FlashSize : ' + inttostr(info_flash_size * 1024));
  log('Boot ver  : 0x' + inttohex(info_boot_ver, 4));
+ log('RX fifo   : 0x' + inttohex(info_rx_size, 8));
  log('Addr from : 0x' + inttohex(info_addr_from, 8));
  log('Addr run  : 0x' + inttohex(info_addr_run, 8));
  log(' ');
@@ -292,20 +295,18 @@ end;
 procedure tSFUboot.recive_write(body:pbyte; count:word);
 var
  addr : cardinal;
- free : cardinal;
  rxed : cardinal;
 begin
- if count <> 12 then
+ if count <> 8 then
   begin
    log('ERROR: write command recive count <> 12');
    exit;
   end;
 
  addr := body_get_cardinal(body, count);
- free := body_get_cardinal(body, count);
  rxed := body_get_cardinal(body, count);
 
- log('WR: 0x'+inttohex(addr, 8) + #9 + inttostr(free) + #9 + inttostr(rxed));
+ log('WR: 0x'+inttohex(addr, 8) + #9 + inttostr(rxed));
 
  if not write_done then
   if final_block_addr <> 0 then

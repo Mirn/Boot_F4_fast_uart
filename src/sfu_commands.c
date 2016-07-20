@@ -12,9 +12,9 @@
 #include "packet_receiver.h"
 
 #include "stm32f4xx_crc_inline.h"
+#include "stm32f4xx_flash_inline.h"
 
-#define SFU_VER_L 0
-#define SFU_VER_H 1
+#define SFU_VER 0x0100
 
 #define SFU_CMD_ERASE_PART   0xB3
 #define SFU_CMD_INFO    0x97
@@ -53,58 +53,59 @@ void sfu_command_parser(uint8_t code, uint8_t *body, uint32_t size)
 	if (code == SFU_CMD_START) sfu_command_start(code, body, size);
 }
 
-///////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static void serialize_uint32(uint8_t *body, uint32_t value)
+static inline void serialize_uint32(uint8_t *body, uint32_t value)
 {
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+	*((uint32_t *)body) = value;
+#else
 	body[0] = (value >>  0) & 0xFF;
 	body[1] = (value >>  8) & 0xFF;
 	body[2] = (value >> 16) & 0xFF;
 	body[3] = (value >> 24) & 0xFF;
+#endif
 }
 
-static uint32_t deserialize_uint32(uint8_t *body)
+static inline void serialize_uint16(uint8_t *body, uint16_t value)
 {
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+	*((uint16_t *)body) = value;
+#else
+	body[0] = (value >>  0) & 0xFF;
+	body[1] = (value >>  8) & 0xFF;
+#endif
+}
+
+static inline uint32_t deserialize_uint32(uint8_t *body)
+{
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+	return *((uint32_t *)body);
+#else
 	return  ((uint32_t)body[0] <<  0) |
 			((uint32_t)body[1] <<  8) |
 			((uint32_t)body[2] << 16) |
 			((uint32_t)body[3] << 24);
+#endif
 }
 
-///////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static void sfu_command_info(uint8_t code, UNUSED uint8_t *body, UNUSED uint32_t size)
 {
-	const uint32_t CPU_TYPE = DBGMCU->IDCODE;
-
-	uint8_t info[28] = {
-			[0 ... 11] = 0,
-			(CPU_TYPE >>  0) & 0xFF,
-			(CPU_TYPE >>  8) & 0x0F, //7..4 bits reserved
-			(CPU_TYPE >> 16) & 0xFF,
-			(CPU_TYPE >> 24) & 0xFF,
-
-			FLASH_SIZE_CORRECT_L,
-			FLASH_SIZE_CORRECT_H,
-
-			SFU_VER_L,
-			SFU_VER_H,
-
-			(MAIN_START_FROM >>  0) & 0xFF,
-			(MAIN_START_FROM >>  8) & 0xFF,
-			(MAIN_START_FROM >> 16) & 0xFF,
-			(MAIN_START_FROM >> 24) & 0xFF,
-
-			(MAIN_RUN_FROM >>  0) & 0xFF,
-			(MAIN_RUN_FROM >>  8) & 0xFF,
-			(MAIN_RUN_FROM >> 16) & 0xFF,
-			(MAIN_RUN_FROM >> 24) & 0xFF,
-	};
+	const uint32_t CPU_TYPE = DBGMCU->IDCODE & 0xFFFF0FFF; //7..4 bits reserved
 
 	for (uint32_t index = 0; index < 12; index++)
-		info[index] = DEVICE_ID_BLOCK_PTR[index];
+		body[index] = DEVICE_ID_BLOCK_PTR[index];
 
-	packet_send(code, info, sizeof(info));
+	serialize_uint32(body + 12, CPU_TYPE);
+	serialize_uint16(body + 16, FLASH_SIZE_CORRECT);
+	serialize_uint16(body + 18, SFU_VER);
+	serialize_uint32(body + 20, recive_size());
+	serialize_uint32(body + 24, MAIN_START_FROM);
+	serialize_uint32(body + 28, MAIN_RUN_FROM);
+
+	packet_send(code, body, 32);
 }
 
 typedef struct {
@@ -137,15 +138,15 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 	if (firmware_size > 0)
 	{
 		FLASH_Status status = FLASH_BUSY;
-		FLASH_Unlock();
-		FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |
+		FLASH_Unlock_inline();
+		FLASH_ClearFlag_inline(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |
 	                    FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
 		for (uint32_t pos = 0; pos < LENGTH(sectors); pos++)
 		{
 			if ((FLASH_SIZE == 512) && (sectors[pos].sector_id == FLASH_Sector_8)) break;
 
-			status = FLASH_EraseSector(sectors[pos].sector_id, VoltageRange_3);
+			status = FLASH_EraseSector_inline(sectors[pos].sector_id, VoltageRange_3);
 			if (status != FLASH_COMPLETE)
 				break;
 
@@ -155,7 +156,7 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 			if (erased_size >= firmware_size)
 				break;
 		}
-		FLASH_Lock();
+		FLASH_Lock_inline();
 
 		if (status == FLASH_COMPLETE)
 		{
@@ -166,6 +167,27 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 	}
 
 	packet_send(code, body, 0);
+}
+
+__attribute__ ((long_call, section(".data")))
+FLASH_Status flash_block_write(uint32_t wr_addr, uint32_t *data, uint32_t count)
+{
+	FLASH_Status status = FLASH_BUSY;
+	FLASH_Unlock_inline();
+
+	FLASH_ClearFlag_inline(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |
+                    FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+	while (count--)
+	{
+		status = FLASH_ProgramWord_inline(wr_addr, *data);
+		if (status != FLASH_COMPLETE) break;
+
+		wr_addr += 4;
+		data++;
+	}
+	FLASH_Lock_inline();
+	return status;
 }
 
 static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
@@ -187,21 +209,8 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 
 		if ((body_addr == write_addr) && (word_count > 0))
 		{
-			FLASH_Status status = FLASH_BUSY;
-			FLASH_Unlock();
-
-			FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR |
-		                    FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
-
-			while (word_count--)
-			{
-				status = FLASH_ProgramWord(write_addr, *word_data);
-				if (status != FLASH_COMPLETE) break;
-
-				write_addr += 4;
-				word_data++;
-			}
-			FLASH_Lock();
+			FLASH_Status status = flash_block_write(write_addr, word_data, word_count);
+			write_addr += (word_count * 4);
 
 			if (status != FLASH_COMPLETE)
 			{
@@ -213,10 +222,9 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 	}
 
 	serialize_uint32(body + 0, write_addr);
-	serialize_uint32(body + 4, recive_free());
-	serialize_uint32(body + 8, recive_count());
+	serialize_uint32(body + 4, recive_count());
 
-	packet_send(code, body, 12);
+	packet_send(code, body, 8);
 }
 
 static void sfu_command_start(uint8_t code, uint8_t *body, uint32_t size)

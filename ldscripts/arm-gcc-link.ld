@@ -3,9 +3,9 @@ OUTPUT_FORMAT ("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 MEMORY
 {
 	rom (rx)  : ORIGIN = 0x08000000, LENGTH = 0x000F8000
-	buf (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00020000
-	ram (rwx) : ORIGIN = 0x10000000, LENGTH = 0x00008000
-	ccm (rwx) : ORIGIN = 0x10008000, LENGTH = 0x00008000
+	buf (rwx) : ORIGIN = 0x20000000, LENGTH = 0x0001C000
+	ram (rwx) : ORIGIN = 0x2001C000, LENGTH = 0x00004000
+	ccm (rw)  : ORIGIN = 0x10008000, LENGTH = 0x00008000
 	NOTUSED (rw) : ORIGIN = 0, LENGTH = 0
 }
 

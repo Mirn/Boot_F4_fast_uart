@@ -255,5 +255,8 @@ void recive_packets_worker()
 
 	while (recive_count() > 0)
 		if ((*recive_check)())
+		{
 			packet_timeout = TIMEOUT_RESTART;
+			break;
+		}
 }

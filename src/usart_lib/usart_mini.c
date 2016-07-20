@@ -33,7 +33,7 @@
 #define USART_BOD 921600
 //#define USART_BOD 115200
 
-uint8_t rx_buffer[0x20000]  __attribute__ ((section (".usart_mini_rx_buffer"), used));
+uint8_t rx_buffer[0x1C000]  __attribute__ ((section (".usart_mini_rx_buffer"), used));
 
 volatile uint32_t rx_pos_write = 0;
 volatile uint32_t rx_pos_read  = 0;
@@ -96,6 +96,7 @@ void usart_init()
 #endif
 }
 
+__attribute__ ((long_call, section(".data")))
 void USART1_IRQHandler(void)
 {
 	if (USART_GetITStatus_inline(USART1, USART_IT_RXNE) != RESET)
@@ -135,9 +136,9 @@ uint32_t recive_count()
 	return rx_pos_write - rx_pos_read;
 }
 
-uint32_t recive_free()
+uint32_t recive_size()
 {
-	return sizeof(rx_buffer) - recive_count();
+	return sizeof(rx_buffer);
 }
 
 void send(const uint8_t tx_data)

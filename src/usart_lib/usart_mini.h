@@ -23,7 +23,7 @@ void send(const uint8_t tx_data);
 
 bool recive_byte(uint8_t *rx_data);
 uint32_t recive_count();
-uint32_t recive_free();
+uint32_t recive_size();
 
 void send_block(const uint8_t *data, const uint32_t size);
 
