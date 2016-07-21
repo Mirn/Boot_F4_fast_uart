@@ -104,6 +104,23 @@ object Form1: TForm1
     Font.Style = [fsBold]
     ParentFont = False
   end
+  object ErrorsKeepCheckBox: TCheckBox
+    Left = 1056
+    Top = 759
+    Width = 129
+    Height = 17
+    Anchors = [akLeft, akBottom]
+    Caption = 'ErrorsKeep'
+    Checked = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentFont = False
+    State = cbChecked
+    TabOrder = 13
+  end
   object MemoDevice: TMemo
     Left = 8
     Top = 16
@@ -275,6 +292,23 @@ object Form1: TForm1
     Caption = '...'
     TabOrder = 11
     OnClick = OpenFWButtonClick
+  end
+  object PreWriteCheckBox: TCheckBox
+    Left = 1056
+    Top = 743
+    Width = 105
+    Height = 17
+    Anchors = [akLeft, akBottom]
+    Caption = 'PreWrite'
+    Checked = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentFont = False
+    State = cbChecked
+    TabOrder = 12
   end
   object Timer1mS: TTimer
     Interval = 1

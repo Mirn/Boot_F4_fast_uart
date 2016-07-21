@@ -36,6 +36,8 @@ type
     OpenFWButton: TButton;
     Cap1Label: TLabel;
     Cap2Label: TLabel;
+    PreWriteCheckBox: TCheckBox;
+    ErrorsKeepCheckBox: TCheckBox;
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Timer1mSTimer(Sender: TObject);
@@ -218,9 +220,12 @@ begin
      if UpperCase(str) = UpperCase('-RST')   then ResetCheckBox.Checked := true else
      if UpperCase(str) = UpperCase('-fast')  then FastCheckBox.Checked := true else
      if UpperCase(str) = UpperCase('-exit')  then ExitCheckBox.Checked := true else
+     if UpperCase(str) = UpperCase('-no-Errors-Keep')  then ErrorsKeepCheckBox.Checked := false else
+     if UpperCase(str) = UpperCase('-no-Prewrite')  then PreWriteCheckBox.Checked := false else
      if UpperCase(str) = UpperCase('-go')    then auto_run := true else
      if UpperCase(str) = UpperCase('-run')   then auto_run := true else
      if UpperCase(str) = UpperCase('-start') then auto_run := true else
+
 
      if UpperCase(copy(str, 1, length(DEV_KEY))) = DEV_KEY then
       DeviceEdit.Text := copy(str, length(DEV_KEY)+1, length(str))
@@ -359,20 +364,21 @@ begin
  sfu.recive_reset;
 
  if ExitCheckBox.Checked then
-  begin
-   sleep(100); Application.ProcessMessages;
-   sleep(100); Application.ProcessMessages;
-   sleep(100); Application.ProcessMessages;
-   sleep(100); Application.ProcessMessages;
+  if (ErrorsKeepCheckBox.Enabled = false) or (boot.task_error = false) then
+   begin
+    sleep(100); Application.ProcessMessages;
+    sleep(100); Application.ProcessMessages;
+    sleep(100); Application.ProcessMessages;
+    sleep(100); Application.ProcessMessages;
 
-   if boot.task_error then
-    ExitCode := 1
-   else
-    ExitCode := 0;
+    if boot.task_error then
+     ExitCode := 1
+    else
+     ExitCode := 0;
 
-   self.Close;
-   exit;
-  end;
+    self.Close;
+    exit;
+   end;
 
  GoButton.Enabled := true;
  DeviceEdit.Enabled := true;
@@ -456,8 +462,8 @@ begin
   end;
 
  boot.firmware_fname := FirmwareEdit.Text;
- //boot.opt_prewrite := true;
- //boot.opt_fast_erase := FastCheckBox.Checked;
+ boot.opt_prewrite := PreWriteCheckBox.Checked;
+ boot.opt_fast_erase := FastCheckBox.Checked;
 
  milliseconds_start(cmd_ms_timer);
  milliseconds_start(dev_ms_timer);
@@ -510,6 +516,7 @@ var
  settings : tstringlist;
 begin
  settings := TStringList.Create;
+
  settings.Add(FirmwareEdit.Text);
  settings.Add(DeviceEdit.Text);
  settings.Add(BoolToStr(FastCheckBox.Checked,  false));
@@ -517,6 +524,9 @@ begin
  settings.Add(BoolToStr(ExitCheckBox.Checked,  false));
  settings.Add(inttostr(self.left));
  settings.Add(inttostr(self.Top));
+ settings.Add(BoolToStr(PreWriteCheckBox.Checked,   false));
+ settings.Add(BoolToStr(ErrorsKeepCheckBox.Checked, false));
+
  settings.SaveToFile(ParamStr(0)+'.config');
 end;
 
@@ -540,6 +550,8 @@ begin
   ExitCheckBox.Checked  := settings.Strings[4] <> '0';
   self.left := StrToInt(settings.Strings[5]);
   self.top  := StrToInt(settings.Strings[6]);
+  PreWriteCheckBox.Checked    := settings.Strings[7] <> '0';
+  ErrorsKeepCheckBox.Checked  := settings.Strings[8] <> '0';
 
   result := true;
  except
