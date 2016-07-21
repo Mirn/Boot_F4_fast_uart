@@ -456,8 +456,8 @@ begin
   end;
 
  boot.firmware_fname := FirmwareEdit.Text;
- //boot.opt_prewrite := true;
- //boot.opt_fast_erase := FastCheckBox.Checked;
+ boot.opt_prewrite := true;
+ boot.opt_fast_erase := FastCheckBox.Checked;
 
  milliseconds_start(cmd_ms_timer);
  milliseconds_start(dev_ms_timer);

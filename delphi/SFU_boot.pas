@@ -358,7 +358,7 @@ var
 begin
  if count <> 8 then
   begin
-   log('ERROR: write command recive count <> 12');
+   log('ERROR: write command recive count <> 8');
    exit;
   end;
 
@@ -515,7 +515,7 @@ begin
  else
   count := WRITE_BLOCK_SIZE;
 
- //log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count)); //log('');
+ log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count)); //log('');
 
  if count <= 0 then
   exit;

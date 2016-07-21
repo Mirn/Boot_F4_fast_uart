@@ -116,17 +116,16 @@ typedef struct {
 #define ADDR_COMPRESS 0x00004000
 
 const tFLASH_sectors sectors[] = {
-		{FLASH_Sector_1, (0x00004000 / ADDR_COMPRESS)},
-		{FLASH_Sector_2, (0x00008000 / ADDR_COMPRESS)},
-		{FLASH_Sector_3, (0x00018000 / ADDR_COMPRESS)},
-		{FLASH_Sector_4, (0x00028000 / ADDR_COMPRESS)},
-		{FLASH_Sector_5, (0x00048000 / ADDR_COMPRESS)},
-		{FLASH_Sector_6, (0x00068000 / ADDR_COMPRESS)},
-		{FLASH_Sector_7, (0x00088000 / ADDR_COMPRESS)},
-		{FLASH_Sector_8, (0x000A8000 / ADDR_COMPRESS)},
+		{FLASH_Sector_2, (0x00004000 / ADDR_COMPRESS)},
+		{FLASH_Sector_3, (0x00008000 / ADDR_COMPRESS)},
+		{FLASH_Sector_4, (0x00018000 / ADDR_COMPRESS)},
+		{FLASH_Sector_5, (0x00038000 / ADDR_COMPRESS)},
+		{FLASH_Sector_6, (0x00058000 / ADDR_COMPRESS)},
+		{FLASH_Sector_7, (0x00078000 / ADDR_COMPRESS)},
+		{FLASH_Sector_8, (0x00098000 / ADDR_COMPRESS)},
 		{FLASH_Sector_9, (0x000B8000 / ADDR_COMPRESS)},
-		{FLASH_Sector_10,(0x000C8000 / ADDR_COMPRESS)},
-		{FLASH_Sector_11,(0x000E8000 / ADDR_COMPRESS)},
+		{FLASH_Sector_10,(0x000D8000 / ADDR_COMPRESS)},
+		{FLASH_Sector_11,(0x000F8000 / ADDR_COMPRESS)},
 };
 
 static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
@@ -144,7 +143,7 @@ static void sfu_command_erase(uint8_t code, uint8_t *body, uint32_t size)
 
 		for (uint32_t pos = 0; pos < LENGTH(sectors); pos++)
 		{
-			if ((FLASH_SIZE == 512) && (sectors[pos].sector_id == FLASH_Sector_8)) break;
+			if ((FLASH_SIZE == 512) && (sectors[pos].sector_id == FLASH_Sector_7)) break;
 
 			status = FLASH_EraseSector_inline(sectors[pos].sector_id, VoltageRange_3);
 			if (status != FLASH_COMPLETE)
