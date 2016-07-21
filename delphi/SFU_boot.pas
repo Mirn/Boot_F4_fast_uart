@@ -348,7 +348,7 @@ begin
   send_write_multi(64);
 
  erase_done := true;
- send_timeout := GetTickCount + TIMEOUT_WRITE;
+ send_timeout := GetTickCount + TIMEOUT_WRITE + 100; //for 115200 bod: after erase additional start delay 100ms
 end;
 
 procedure tSFUboot.recive_write(body:pbyte; count:word);
@@ -515,7 +515,7 @@ begin
  else
   count := WRITE_BLOCK_SIZE;
 
- log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count)); //log('');
+ //log('Send: 0x' + inttohex(firmware_addr, 8) + ' ' + inttostr(count)); //log('');
 
  if count <= 0 then
   exit;
