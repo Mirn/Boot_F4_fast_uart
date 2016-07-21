@@ -93,10 +93,10 @@ object Form1: TForm1
   object Cap2Label: TLabel
     Left = 880
     Top = 2
-    Width = 351
+    Width = 360
     Height = 17
     Anchors = [akLeft, akBottom]
-    Caption = 'mSec    hstFifo Boot commands level log'
+    Caption = 'mSec    hstFifo BootCommnands    devFIFO'
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
     Font.Height = -15

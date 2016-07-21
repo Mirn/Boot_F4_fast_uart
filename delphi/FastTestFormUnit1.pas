@@ -72,6 +72,9 @@ type
     procedure onLogBoot(sender:tobject; msg:string);
 
     procedure OnDone_OnError;
+
+    procedure settings_save;
+    function settings_load:boolean;
   public
   end;
 
@@ -122,7 +125,7 @@ begin
 
  device.onLog := self.onLogDev;
 
- device.port_speed := 921600;//500000;//115200;//
+ device.port_speed := 115200;//921600;//500000;//
  device.port_parity := NOPARITY;
  device.no_activate := true;
  device.task_open_with_reset := true;
@@ -165,6 +168,9 @@ end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
+ if paramcount = 0 then
+  settings_save;
+
  FreeAndNil(device);
  FreeAndNil(sfu);
  FreeAndNil(boot);
@@ -222,7 +228,9 @@ begin
       FirmwareEdit.Text := str;
      inc(index);
     end;
-  end;
+  end
+ else
+  settings_load;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -448,11 +456,12 @@ begin
   end;
 
  boot.firmware_fname := FirmwareEdit.Text;
- boot.opt_prewrite := true;
+ //boot.opt_prewrite := true;
+ //boot.opt_fast_erase := FastCheckBox.Checked;
 
  milliseconds_start(cmd_ms_timer);
  milliseconds_start(dev_ms_timer);
- boot.start(true, FastCheckBox.Checked);
+ boot.start;
 end;
 
 procedure TForm1.StopButtonClick(Sender: TObject);
@@ -494,6 +503,49 @@ begin
  FirmwareEdit.SelLength := 0;
 
  FreeAndNil(OpenDialog);
+end;
+
+procedure TForm1.settings_save;
+var
+ settings : tstringlist;
+begin
+ settings := TStringList.Create;
+ settings.Add(FirmwareEdit.Text);
+ settings.Add(DeviceEdit.Text);
+ settings.Add(BoolToStr(FastCheckBox.Checked,  false));
+ settings.Add(BoolToStr(ResetCheckBox.Checked, false));
+ settings.Add(BoolToStr(ExitCheckBox.Checked,  false));
+ settings.Add(inttostr(self.left));
+ settings.Add(inttostr(self.Top));
+ settings.SaveToFile(ParamStr(0)+'.config');
+end;
+
+function TForm1.settings_load:boolean;
+var
+ settings : tstringlist;
+ fname : string;
+begin
+ result := false;
+ fname := ParamStr(0)+'.config';
+ if not FileExists(fname) then exit;
+ settings := TStringList.Create;
+
+ try
+  settings.LoadFromFile(fname);
+
+  FirmwareEdit.Text := settings.Strings[0];
+  DeviceEdit.Text   := settings.Strings[1];
+  FastCheckBox.Checked  := settings.Strings[2] <> '0';
+  ResetCheckBox.Checked := settings.Strings[3] <> '0';
+  ExitCheckBox.Checked  := settings.Strings[4] <> '0';
+  self.left := StrToInt(settings.Strings[5]);
+  self.top  := StrToInt(settings.Strings[6]);
+
+  result := true;
+ except
+  FreeAndNil(settings);
+  exit;
+ end;
 end;
 
 end.
