@@ -14,7 +14,6 @@ void main(void)
 #endif
 
 	ticks_init();
-	//delay_ms(1000);
 	usart_init();
 
 #ifdef SystemCoreClockUpdate_ENABLED

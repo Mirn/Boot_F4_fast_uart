@@ -325,7 +325,7 @@ begin
     '  code: ' + inttostr(sfu.stat_error_code) +
     '  size: ' + inttostr(sfu.stat_error_size) +
     '  crc: ' + inttostr(sfu.stat_error_crc) +
-    ' --- ' +
+    '     Host:' +
     ' over: ' + inttostr(device.TX_fifo_blocks.stat_blocks_overfulled + device.TX_fifo_blocks.stat_bytes_overfulled) +
     ' lost: ' + inttostr(device.TX_fifo_blocks.stat_blocks_lost + device.TX_fifo_blocks.stat_bytes_lost) +
     '';

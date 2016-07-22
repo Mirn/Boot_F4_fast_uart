@@ -256,6 +256,18 @@ void (* const g_pfnVectors[])(void) =
   
 };
 
+
+__attribute__ ((section(".isr_vector_minimal")))
+void (* const StartVectors_minimal[])(void) =
+{
+  (void *)&_estack,
+  Reset_Handler,
+};
+
+__attribute__ ((section(".isr_vector_RAM")))
+void (* StartVectors_RAM_actual[128])(void) = {0};
+
+
 //void SystemCoreClockUpdate();
 void SystemInit(void);
 //void kiss_startup_init();
@@ -306,7 +318,14 @@ void Default_Reset_Handler(void)
 
   /* Call the application's entry point.*/
   SystemInit();
-  SCB->VTOR = (uint32_t)g_pfnVectors;
+
+
+  StartVectors_RAM_actual[0xD4 / 4] = USART1_IRQHandler;
+  SCB->VTOR = (uint32_t)StartVectors_RAM_actual;
+  __DMB();
+  __DSB();
+
+//  SCB->VTOR = (uint32_t)g_pfnVectors;
   //SystemCoreClockUpdate();
   //kiss_startup_init();
   main();

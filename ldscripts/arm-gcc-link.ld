@@ -33,9 +33,10 @@ SECTIONS
 { 
     .text : 
     { 
-	   	//. = 0x00000000;
+	   	/*. = 0x00000000;*/
     	__rom_from = .;
-        KEEP(*(.isr_vector .isr_vector.*)) 
+        /*KEEP(*(.isr_vector .isr_vector.*))*/ 
+        KEEP(*(.isr_vector_minimal*))
         *(.text .text.* .gnu.linkonce.t.*) 	      
         *(.glue_7t) *(.glue_7)		                
         *(.rodata .rodata* .gnu.linkonce.r.*)
@@ -71,7 +72,11 @@ SECTIONS
     /* .bss section which is used for uninitialized data */ 
     .bss (NOLOAD) : 
     { 
-        _sbss = . ; 
+        _sbss = . ;
+        
+    	. = ALIGN(512); 
+        *(.isr_vector_RAM*)
+    	
         *(.bss .bss.*) 
         *(COMMON) 
         . = ALIGN(4); 
