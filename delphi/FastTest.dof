@@ -51,7 +51,7 @@ Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
-RunParams=-go -fast -reset  -dev:COM255 E:\bootloader\src\other\test16388.txt
+RunParams=-go -fast -reset  -dev:COM255 E:\Temp\flash_images_fsu_test\SpGate_MR.bin
 HostApplication=
 Launcher=
 UseLauncher=0

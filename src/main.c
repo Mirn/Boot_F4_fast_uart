@@ -26,8 +26,13 @@ void main(void)
 
 	while (1)
 	{
-		recive_packets_worker();
-		recive_packets_print_stat();
+		stat_error_timeout = 0;
+		while ((stat_error_timeout * PACKET_TIMEOUT_mS) < 5000)
+		{
+			recive_packets_worker();
+			recive_packets_print_stat();
+		}
+		main_start();
 	}
 }
 #endif

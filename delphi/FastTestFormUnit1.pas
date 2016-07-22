@@ -127,7 +127,7 @@ begin
 
  device.onLog := self.onLogDev;
 
- device.port_speed := 115200;//921600;//500000;//
+ device.port_speed := 921600;//500000;//115200;//
  device.port_parity := NOPARITY;
  device.no_activate := true;
  device.task_open_with_reset := true;
@@ -385,6 +385,7 @@ begin
  FirmwareEdit.Enabled := true;
  FastCheckBox.Enabled := true;
  ResetCheckBox.Enabled := true;
+ PreWriteCheckBox.Enabled := true;
  LabelDev.Enabled := true;
  LabelBin.Enabled := true;
 
@@ -420,6 +421,7 @@ begin
  FirmwareEdit.Enabled := false;
  FastCheckBox.Enabled := false;
  ResetCheckBox.Enabled := false;
+ PreWriteCheckBox.Enabled := false;
  LabelDev.Enabled := false;
  LabelBin.Enabled := false;
 
@@ -472,8 +474,7 @@ end;
 
 procedure TForm1.StopButtonClick(Sender: TObject);
 begin
- OnDone_OnError;
- boot.RESET;
+ boot.abort;
 end;
 
 procedure TForm1.OpenFWButtonClick(Sender: TObject);

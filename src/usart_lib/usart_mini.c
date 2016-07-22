@@ -30,8 +30,8 @@
 #include "usart_mini.h"
 
 //#define USART_BOD 500000
-//#define USART_BOD 921600
-#define USART_BOD 115200
+#define USART_BOD 921600
+//#define USART_BOD 115200
 
 uint8_t rx_buffer[0x1C000]  __attribute__ ((section (".usart_mini_rx_buffer"), used));
 
@@ -42,10 +42,27 @@ uint32_t rx_errors = 0;
 uint32_t rx_overfulls = 0;
 uint32_t rx_count_max = 0;
 
+void usart_deinit()
+{
+    NVIC_InitTypeDef NVIC_InitStructure = {
+    		.NVIC_IRQChannel = USART1_IRQn,
+    		.NVIC_IRQChannelPreemptionPriority = 0,
+    		.NVIC_IRQChannelSubPriority = 0,
+    		.NVIC_IRQChannelCmd = DISABLE,
+    };
+    NVIC_Init_inline(&NVIC_InitStructure);
+
+	USART_DeInit_inline(USART1);
+	GPIO_DeInit_inline(GPIOA);
+
+	RCC_APB2PeriphClockCmd_inline(RCC_APB2Periph_USART1, DISABLE);
+    RCC_AHB1PeriphClockCmd_inline(RCC_AHB1Periph_GPIOA, DISABLE);
+}
+
 void usart_init()
 {
 #ifdef STM32F4XX
-    USART_DeInit_inline(USART1);
+	usart_deinit();
 
 	RCC_APB2PeriphClockCmd_inline(RCC_APB2Periph_USART1, ENABLE);
     RCC_AHB1PeriphClockCmd_inline(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -84,6 +101,8 @@ void usart_init()
     USART_ITConfig_inline(USART1, USART_IT_RXNE, ENABLE);
 
     USART_Cmd_inline(USART1, ENABLE);
+    send('\r');
+    send('\r');
 #endif
 
 #ifdef USART_BOD_DEBUG

@@ -4,7 +4,7 @@ object Form1: TForm1
   BorderStyle = bsDialog
   Caption = 'SFU uploader'
   ClientHeight = 807
-  ClientWidth = 1525
+  ClientWidth = 1590
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,7 +16,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   OnShow = FormShow
   DesignSize = (
-    1525
+    1590
     807)
   PixelsPerInch = 96
   TextHeight = 13
@@ -37,9 +37,10 @@ object Form1: TForm1
   object SFUboot_StatusLabel: TLabel
     Left = 8
     Top = 783
-    Width = 360
+    Width = 353
     Height = 18
     Anchors = [akLeft, akBottom]
+    AutoSize = False
     Caption = 'StatLabelStatLabelStatLabelStatLabel'
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -91,7 +92,7 @@ object Form1: TForm1
     ParentFont = False
   end
   object Cap2Label: TLabel
-    Left = 880
+    Left = 944
     Top = 2
     Width = 360
     Height = 17
@@ -124,7 +125,7 @@ object Form1: TForm1
   object MemoDevice: TMemo
     Left = 8
     Top = 16
-    Width = 865
+    Width = 929
     Height = 709
     Anchors = [akLeft, akTop, akBottom]
     Font.Charset = RUSSIAN_CHARSET
@@ -138,7 +139,7 @@ object Form1: TForm1
     TabOrder = 0
   end
   object MemoCMD: TMemo
-    Left = 880
+    Left = 944
     Top = 16
     Width = 642
     Height = 709
@@ -165,9 +166,9 @@ object Form1: TForm1
     TabOrder = 2
   end
   object StopCheckBox: TCheckBox
-    Left = 1472
+    Left = 1544
     Top = 727
-    Width = 49
+    Width = 41
     Height = 17
     Anchors = [akLeft, akBottom]
     Caption = 'Stop'
@@ -240,7 +241,7 @@ object Form1: TForm1
   object FirmwareEdit: TEdit
     Left = 624
     Top = 775
-    Width = 865
+    Width = 929
     Height = 30
     Anchors = [akLeft, akBottom]
     Font.Charset = RUSSIAN_CHARSET
@@ -284,7 +285,7 @@ object Form1: TForm1
     TabOrder = 10
   end
   object OpenFWButton: TButton
-    Left = 1496
+    Left = 1560
     Top = 776
     Width = 25
     Height = 25

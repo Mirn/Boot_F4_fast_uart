@@ -34,7 +34,7 @@ type
   info_chip_id : array[0..11] of byte;
   info_dev_type : word;
   info_dev_rev  : word;
-  info_flash_size : word;
+  info_flash_size : cardinal;
   info_boot_ver : word;
   info_addr_from : cardinal;
   info_addr_run : cardinal;
@@ -74,6 +74,8 @@ type
 
   procedure firmware_load;
 
+  procedure RESET;
+
  public
   onLog : tSFUboot_EventLog;
   onERROR: tSFUboot_Event;
@@ -99,8 +101,8 @@ type
   procedure recive_command(code:byte; body:pbyte; count:word);
   procedure next_send;
 
-  procedure RESET;
   procedure start;
+  procedure abort;
  end;
 
 implementation
@@ -153,10 +155,21 @@ begin
  readed := 0;
  if not stm32_load_file(firmware_fname, @firmware_buf[0], sizeof(firmware_buf), @readed) then
   begin
-   error_stop('ERROR: firmware_load(' + firmware_fname + ')');
+   error_stop('ERROR: firmware_load(' + firmware_fname + '), not loaded');
    exit;
   end;
- if readed = 0 then exit;
+
+ if readed = 0 then
+  begin
+   error_stop('ERROR: firmware_load(' + firmware_fname + '), file empty');
+   exit;
+  end;
+
+ if readed > info_flash_size then
+  begin
+   error_stop('ERROR: firmware_load(' + firmware_fname + '), too big');
+   exit;
+  end;
 
  readed := (readed + 3) and $FFFFFFFC;
  firmware_size := readed;
@@ -271,6 +284,8 @@ begin
  info_flash_size := body_get_word(body, count);
  info_boot_ver   := body_get_word(body, count);
 
+ info_flash_size := info_flash_size * 1024;
+
  info_rx_size   := body_get_cardinal(body, count);
  info_addr_from := body_get_cardinal(body, count);
  info_addr_run  := body_get_cardinal(body, count);
@@ -280,7 +295,7 @@ begin
  log_block_ascii('ChipID: ', @info_chip_id[0], sizeof(info_chip_id));
  log('Dev type  : 0x' + inttohex(info_dev_type, 4));
  log('Dev rev   : 0x' + inttohex(info_dev_rev, 4));
- log('FlashSize : '   + inttostr(info_flash_size * 1024));
+ log('FlashSize : '   + inttostr(info_flash_size));
  log('Boot ver  : 0x' + inttohex(info_boot_ver, 4));
  log('RX fifo   : 0x' + inttohex(info_rx_size, 8));
  log('Addr from : 0x' + inttohex(info_addr_from, 8));
@@ -640,6 +655,12 @@ begin
  task_info := '';
  task_done := false;
  task_error := false;
+end;
+
+procedure tSFUboot.abort;
+begin
+ log(' ');
+ error_stop('Task ABORTED ['+datetostr(date)+' '+TimeToStr(time)+']');
 end;
 
 procedure tSFUboot.next_send;

@@ -17,6 +17,7 @@ extern uint32_t rx_overfulls;
 extern uint32_t rx_count_max;
 
 void usart_init();
+void usart_deinit();
 
 void send_str(const char *str);
 void send(const uint8_t tx_data);

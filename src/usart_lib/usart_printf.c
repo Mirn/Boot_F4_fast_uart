@@ -129,7 +129,7 @@ signed int PutUnsignedInt(
  * @param width  Minimum integer width.
  * @param value  Signed integer value.
  */
-signed int PutSignedInt(
+static inline signed int PutSignedInt(
     char *pStr,
     char fill,
     signed int width,
@@ -274,8 +274,8 @@ signed int PutHexa(
  */
 signed int vsnprintf(char *pStr, size_t length, const char *pFormat, va_list ap)
 {
-    char          fill;
-    unsigned char width;
+    char          fill = ' ';
+    unsigned char width = 0;
     signed int    num = 0;
     signed int    size = 0;
 
@@ -295,38 +295,38 @@ signed int vsnprintf(char *pStr, size_t length, const char *pFormat, va_list ap)
             size++;
         }
         /* Escaped '%' */
-        else if (*(pFormat+1) == '%') {
-
-            *pStr++ = '%';
-            pFormat += 2;
-            size++;
-        }
+//        else if (*(pFormat+1) == '%') {
+//
+//            *pStr++ = '%';
+//            pFormat += 2;
+//            size++;
+//        }
         /* Token delimiter */
         else {
 
+            pFormat++;
             fill = ' ';
             width = 0;
-            pFormat++;
 
             /* Parse filler */
-            if (*pFormat == '0') {
-
-                fill = '0';
-                pFormat++;
-            }
-
-            /* Parse width */
-            while ((*pFormat >= '0') && (*pFormat <= '9')) {
-        
-                width = (width*10) + *pFormat-'0';
-                pFormat++;
-            }
-
-            /* Check if there is enough space */
-            if (size + width > length) {
-
-                width = length - size;
-            }
+//            if (*pFormat == '0') {
+//
+//                fill = '0';
+//                pFormat++;
+//            }
+//
+//            /* Parse width */
+//            while ((*pFormat >= '0') && (*pFormat <= '9')) {
+//
+//                width = (width*10) + *pFormat-'0';
+//                pFormat++;
+//            }
+//
+//            /* Check if there is enough space */
+//            if (size + width > length) {
+//
+//                width = length - size;
+//            }
         
             /* Parse type */
             switch (*pFormat) {
@@ -335,7 +335,7 @@ signed int vsnprintf(char *pStr, size_t length, const char *pFormat, va_list ap)
             case 'i': num = PutSignedInt(pStr, fill, width, va_arg(ap, signed int)); break;
             //case 'u': num = PutUnsignedInt(pStr, fill, width, va_arg(ap, unsigned int)); break;
             //case 'x': num = PutHexa(pStr, fill, width, 0, va_arg(ap, unsigned int)); break;
-            case 'X': num = PutHexa(pStr, fill, width, 1, va_arg(ap, unsigned int)); break;
+            //case 'X': num = PutHexa(pStr, fill, width, 1, va_arg(ap, unsigned int)); break;
             //case 's': num = PutString(pStr, va_arg(ap, char *)); break;
             //case 'c': num = PutChar(pStr, va_arg(ap, unsigned int)); break;
             default:
