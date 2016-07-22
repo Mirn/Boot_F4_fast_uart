@@ -51,7 +51,7 @@ Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
-RunParams=-go -fast -reset  -dev:COM255 E:\Temp\flash_images_fsu_test\SpGate_MR.bin
+RunParams=-go -fast -reset E:\gsm\lab\Firmware\Gate_Tester_41b.bin -dev:COM255
 HostApplication=
 Launcher=
 UseLauncher=0

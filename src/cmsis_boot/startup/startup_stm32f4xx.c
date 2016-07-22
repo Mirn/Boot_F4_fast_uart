@@ -322,8 +322,6 @@ void Default_Reset_Handler(void)
 
   StartVectors_RAM_actual[0xD4 / 4] = USART1_IRQHandler;
   SCB->VTOR = (uint32_t)StartVectors_RAM_actual;
-  __DMB();
-  __DSB();
 
 //  SCB->VTOR = (uint32_t)g_pfnVectors;
   //SystemCoreClockUpdate();
