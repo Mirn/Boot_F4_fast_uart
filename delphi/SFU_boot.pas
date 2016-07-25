@@ -30,6 +30,7 @@ type
   write_restart : boolean;
 
   send_timeout : cardinal;
+  rewrite_countout : cardinal;
 
   info_chip_id : array[0..11] of byte;
   info_dev_type : word;
@@ -429,6 +430,9 @@ begin
  progress_max := firmware_size;
  progress_pos := addr - firmware_start;
 
+ if last_writed_addr < addr then
+  rewrite_countout := 0;
+
  last_writed_addr := addr;
  send_timeout := GetTickCount + TIMEOUT_WRITE;
 end;
@@ -560,6 +564,13 @@ end;
 
 procedure tSFUboot.send_write_restart;
 begin
+ inc(rewrite_countout);
+ if rewrite_countout > 10 then
+  begin
+   error_stop('ERROR: Write restart timeout');
+   exit;
+  end;
+
  log('Send command: Write(RESART)');
  write_restart := true;
  CommandSend(SFU_CMD_WRITE);
@@ -601,9 +612,8 @@ begin
  firmware_addr  := 0;
  firmware_start := 0;
 
- write_restart := false;
-
  send_timeout := 0;
+ rewrite_countout := 0;
 
  last_writed_addr := 0;
  last_sended_addr := 0;
