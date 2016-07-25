@@ -1411,7 +1411,7 @@ go_work:
  then
   begin
    Log_add('ERROR detect real port serial');
-   StrCopy(real_port_serial, pchar(port_name));
+   StrCopy(real_port_serial, pansichar(port_name));
   end
  else
   Log_add('Real port serial : ' + real_port_serial);

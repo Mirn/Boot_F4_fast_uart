@@ -91,7 +91,7 @@ type
 
   task_done : boolean;
   task_error : boolean;
-  task_info : ansistring;
+  task_info : string[255];
 
   opt_fast_erase : boolean;
   opt_prewrite : boolean;

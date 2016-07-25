@@ -14,7 +14,7 @@ type
 
  tSFUcmd = class
  private
-  info_string : string;
+  info_string : ansistring;
 
   recive_seq : cardinal;
 
@@ -210,7 +210,7 @@ begin
  else
   begin
    inc(stat_error_start);
-   if data = 13 then
+   if (data = 13) or (length(info_string) > 128) then
     begin
      if @onInfoString <> nil then
       onInfoString(self, info_string);
