@@ -229,8 +229,13 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 void main_start()
 {
 	uint32_t *boot_from = (uint32_t*)MAIN_RUN_FROM;
-	if ((boot_from[0] >> 24) != (SRAM_BASE >> 24)) return send_str("SRAM ERROR\r");
-	if (((boot_from[1] >> 24) != (FLASH_BASE >> 24)) && (boot_from[1] > MAIN_RUN_FROM)) return send_str("FLASH ERROR\r");
+
+	if (((boot_from[0] >> 24) != (SRAM_BASE >> 24)) &&
+		((boot_from[0] >> 24) != (CCMDATARAM_BASE >> 24)))
+		return send_str("SRAM ERROR\r");
+
+	if (((boot_from[1] >> 24) != (FLASH_BASE >> 24)) && (boot_from[1] > MAIN_RUN_FROM))
+		return send_str("FLASH ERROR\r");
 
 	send_str("CONTEXT OK\r\r");
 	usart_deinit();

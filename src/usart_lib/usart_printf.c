@@ -83,7 +83,7 @@ signed int PutString(char *pStr, const char *pSource)
  * @param  width  Minimum integer width.
  * @param  value  Integer value.   
  */
-signed int PutUnsignedInt(
+static inline signed int PutUnsignedInt(
     char *pStr,
     char fill,
     signed int width,
@@ -331,9 +331,8 @@ signed int vsnprintf(char *pStr, size_t length, const char *pFormat, va_list ap)
             /* Parse type */
             switch (*pFormat) {
             case 'd':
-            case 'u':
-            case 'i': num = PutSignedInt(pStr, fill, width, va_arg(ap, signed int)); break;
-            //case 'u': num = PutUnsignedInt(pStr, fill, width, va_arg(ap, unsigned int)); break;
+            case 'i': //num = PutSignedInt(pStr, fill, width, va_arg(ap, signed int)); break;
+            case 'u': num = PutUnsignedInt(pStr, fill, width, va_arg(ap, unsigned int)); break;
             //case 'x': num = PutHexa(pStr, fill, width, 0, va_arg(ap, unsigned int)); break;
             //case 'X': num = PutHexa(pStr, fill, width, 1, va_arg(ap, unsigned int)); break;
             //case 's': num = PutString(pStr, va_arg(ap, char *)); break;
