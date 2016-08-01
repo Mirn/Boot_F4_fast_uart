@@ -170,6 +170,10 @@ end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
+ if device.State <> link_idle then ExitCode := 2 else
+ if boot.task_error then           ExitCode := 1 else
+  ExitCode := 0;
+
  if paramcount = 0 then
   settings_save;
 
@@ -364,17 +368,12 @@ begin
  sfu.recive_reset;
 
  if ExitCheckBox.Checked then
-  if (ErrorsKeepCheckBox.Enabled = false) or (boot.task_error = false) then
+  if (ErrorsKeepCheckBox.Checked = false) or (boot.task_error = false) then
    begin
     sleep(100); Application.ProcessMessages;
     sleep(100); Application.ProcessMessages;
     sleep(100); Application.ProcessMessages;
     sleep(100); Application.ProcessMessages;
-
-    if boot.task_error then
-     ExitCode := 1
-    else
-     ExitCode := 0;
 
     self.Close;
     exit;
@@ -439,7 +438,9 @@ begin
   end;
 
  device.port_name := DeviceEdit.Text;
- device.port_name_serial := (device.port_name <> '') and (copy(device.port_name, 1, 3) <> 'COM');
+ device.port_name_serial := (device.port_name <> '') and
+                            (copy(device.port_name, 1, 3) <> 'COM') and
+                            (system.pos('USB#VID', device.port_name) = 0);
 
  device.Open;
  start_time := GetTickCount;
