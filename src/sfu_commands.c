@@ -226,6 +226,13 @@ static void sfu_command_write(uint8_t code, uint8_t *body, uint32_t size)
 	packet_send(code, body, 8);
 }
 
+__attribute__( ( naked ) )
+void jump_main(uint32_t stack, uint32_t func)
+{
+	__set_MSP(stack);
+	(*(void (*)())(func))();
+}
+
 void main_start()
 {
 	uint32_t *boot_from = (uint32_t*)MAIN_RUN_FROM;
@@ -241,8 +248,7 @@ void main_start()
 	usart_deinit();
 	RCC_DeInit();
 
-	__set_MSP(boot_from[0]);
-	(*(void (*)())(boot_from[1]))();
+	jump_main(boot_from[0], boot_from[1]);
 }
 
 static void sfu_command_start(uint8_t code, uint8_t *body, uint32_t size)
