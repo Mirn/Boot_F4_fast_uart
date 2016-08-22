@@ -26,7 +26,7 @@ void main(void)
 	while (1)
 	{
 		stat_error_timeout = 0;
-		while ((stat_error_timeout * PACKET_TIMEOUT_mS) < 5000)
+		while ((stat_error_timeout * PACKET_TIMEOUT_mS) < 2000)
 		{
 			recive_packets_worker();
 			recive_packets_print_stat();

@@ -1,6 +1,9 @@
-# Boot_F4_fast_uart
+﻿# Boot_F4_fast_uart
 Small, fast and simple STM32F4xx UART bootloader.
 With very small footprint but without assembler code.
+
+подробное описание на русском:
+https://habrahabr.ru/post/305800/
 
 * **Target MCU**: STM32F405 / STM32F407 
 * **clocks**: 147.5 MHz (for minimal BOD error)
