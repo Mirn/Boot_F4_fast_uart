@@ -320,7 +320,8 @@ void Default_Reset_Handler(void)
   SystemInit();
 
 
-  StartVectors_RAM_actual[0xD4 / 4] = USART1_IRQHandler;
+  StartVectors_RAM_actual[0xD4 / 4] = USART1_IRQHandler; //UART1
+  StartVectors_RAM_actual[0xDC / 4] = USART1_IRQHandler; //UART3
   SCB->VTOR = (uint32_t)StartVectors_RAM_actual;
 
 //  SCB->VTOR = (uint32_t)g_pfnVectors;

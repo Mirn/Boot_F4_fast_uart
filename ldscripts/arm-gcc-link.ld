@@ -35,8 +35,8 @@ SECTIONS
     { 
 	   	/*. = 0x00000000;*/
     	__rom_from = .;
-        /*KEEP(*(.isr_vector .isr_vector.*))*/ 
         KEEP(*(.isr_vector_minimal*))
+        /*KEEP(*(.isr_vector .isr_vector.*)) */
         *(.text .text.* .gnu.linkonce.t.*) 	      
         *(.glue_7t) *(.glue_7)		                
         *(.rodata .rodata* .gnu.linkonce.r.*)
@@ -55,6 +55,10 @@ SECTIONS
     } > rom
     __exidx_end = .;
     
+    . = ALIGN(4);
+    _etext = .;
+    _sidata = .;
+    
     .data : AT (_etext) 
     { 
         _sdata = .; 
@@ -63,11 +67,11 @@ SECTIONS
         _edata = . ;
     } > ram
 
-    /*. = ALIGN(4);*/
-    //. = 0x08000000 + 0x2000 - SIZEOF(.data);
-    . = 0x08000000 + (__rom_to - __rom_from);
+    . = ALIGN(4);
+    /*. = 0x08000000 + 0x2000 - SIZEOF(.data);*/
+    /*. = 0x08000000 + (__rom_to - __rom_from);
     _etext = .;
-    _sidata = .;
+    _sidata = .;*/
     		
     /* .bss section which is used for uninitialized data */ 
     .bss (NOLOAD) : 

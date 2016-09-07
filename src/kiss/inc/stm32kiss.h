@@ -39,9 +39,9 @@ typedef struct
 	uint32_t max;
 } tLIMIT;
 
+#ifdef STM32F4XX
 #define DEVICE_ID_BLOCK_PTR ((uint8_t*)0x1FFF7A10)
 
-#ifdef STM32F4XX
 #define FLASH_PAGE_SIZE      1024
 #define FLASH_SIZE          (*((uint16_t *)0x1FFF7A22))
 
