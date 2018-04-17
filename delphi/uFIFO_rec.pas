@@ -20,6 +20,7 @@ type
    writed : tFIFO_rec_stat_direction;
   end;
 
+  pFIFO_rec = ^tFIFO_rec;
   tFIFO_rec=packed record
    wr : Cardinal;
    rd : Cardinal;

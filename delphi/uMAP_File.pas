@@ -35,6 +35,8 @@ type
    property is_created : boolean read f_created;
   end;
 
+var
+ open_map_local : boolean;
 
 implementation
 uses AccCtrl, AclAPI;
@@ -83,6 +85,9 @@ end;
 function tMapFile.name_current : string;
 begin
  if self = nil then exit;
+ if open_map_local then
+  result :=name_local
+ else
  result :=name_global;
 end;
 

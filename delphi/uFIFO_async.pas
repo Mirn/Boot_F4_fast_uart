@@ -23,7 +23,7 @@ type
    function get_stat : tFIFO_rec_stat;
 
   protected
-   fifo : ^tFIFO_rec;
+   fifo : pFIFO_rec;
    fixed_size : integer;
    fifo_data_ptr : pointer;
    string_read : string;

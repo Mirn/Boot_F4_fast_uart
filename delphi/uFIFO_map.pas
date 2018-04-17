@@ -4,6 +4,7 @@ interface
 uses windows, sysutils, math,
  uMAP_File,
  uFIFO_async,
+ uFIFO_rec,
  uMutex;
 
 type
@@ -23,6 +24,7 @@ type
   protected
    mutex_read  : tMutex;
    mutex_write : tMutex;
+   shadow_fifo : pFIFO_rec;
 
    procedure read_begin;override;
    procedure read_end;override;
@@ -41,13 +43,14 @@ type
 
    procedure close;
 
+   procedure update;
+   procedure shadow_enable;
+
    property is_writer  : boolean read get_mode_writer;
    property is_created : boolean read get_created;
   end;
 
 implementation
-uses
- uFIFO_rec;
 
 constructor tFIFO_map.create(name:string; v_size:integer; log:tMapFileLog);
 begin
@@ -74,6 +77,9 @@ begin
 
  map_data := nil;
  map_fifo := nil;
+
+ if shadow_fifo <> nil then
+  Dispose(fifo);
 
  fifo := nil;
  data := nil;
@@ -192,5 +198,25 @@ begin
 
  result := map_fifo.is_created or map_data.is_created;
 end;
+
+procedure tFIFO_map.update;
+begin
+ if shadow_fifo = nil then
+  exit;
+
+ fifo.wr            := shadow_fifo^.wr;
+ fifo.stat_writed   := shadow_fifo^.stat_writed;
+ fifo.errors_writed := shadow_fifo^.errors_writed;
+ fifo.stat          := shadow_fifo^.stat;
+end;
+
+procedure tFIFO_map.shadow_enable;
+begin
+ shadow_fifo := fifo;
+ fifo := nil;
+ New(fifo);
+ Move(shadow_fifo^, fifo^, sizeof(fifo^));
+end;
+
 
 end.

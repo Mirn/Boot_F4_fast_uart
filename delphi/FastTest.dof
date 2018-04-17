@@ -51,7 +51,7 @@ Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
-RunParams=-go -fast -reset -exit -no-Errors-Keep -dev:\??\USB#VID_10C4&PID_EA60#GM18_E_0010#{a5dcbf10-6530-11d2-901f-00c04fb951ed} E:\Temp\flash_images_fsu_test\SpGate_MR.bin
+RunParams=-go -fast -reset -dev:\??\USB#VID_10C4&PID_EA60#00001#{a5dcbf10-6530-11d2-901f-00c04fb951ed} E:\Temp\flash_images_fsu_test\SpGate_MR.bin
 HostApplication=
 Launcher=
 UseLauncher=0

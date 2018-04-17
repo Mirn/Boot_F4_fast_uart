@@ -30,6 +30,8 @@ type
    property name : string  read name_current;
   end;
 
+var
+ open_mutex_local : boolean;
 
 implementation
 uses
@@ -76,6 +78,9 @@ end;
 function tMutex.name_current : string;
 begin
  if self = nil then exit;
+ if open_mutex_local then
+  result :=name_local
+ else
  result :=name_global;
 end;
 

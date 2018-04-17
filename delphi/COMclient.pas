@@ -1,14 +1,15 @@
 unit COMclient;
 
 interface
-uses winsock, sysutils, Windows, Registry, classes, math,
+uses winsock, sysutils, Windows, Registry, classes, math, shellapi,
 //     D2XXUnit,
      LinkClient,
      u_stm32_id,
      u_millesecond_timer,
      uMAP_debug_log,
      CP2102_classes,
-     CP210xRuntimeDLL;
+     CP210xRuntimeDLL,
+     SLABHIDtoUART;
 
 const
  tboot_ack   = $79;
@@ -154,6 +155,14 @@ type
 
   function cw_upload:boolean;
 
+  procedure SFU_mode_run;
+  function run_program(exe_name:pchar; param_str:pchar; wait_ms:integer=INFINITE; done_flg:pboolean = nil;  exitcode:pcardinal = nil):boolean;
+  procedure sfu_status_update(tool_name:string);
+
+  function WriteFile(hFile: THandle; const Buffer; nNumberOfBytesToWrite: DWORD; var lpNumberOfBytesWritten: DWORD; lpOverlapped: POverlapped): BOOL;
+  function ReadFile(hFile: THandle; var Buffer; nNumberOfBytesToRead: DWORD;  var lpNumberOfBytesRead: DWORD; lpOverlapped: POverlapped): BOOL;
+  procedure FileClose(Handle: THandle);
+
  protected
   handle     : thandle;
   com_number : cardinal;
@@ -220,7 +229,12 @@ type
   cw_finished : boolean;
   cw_no_founded : boolean;
 
+  SFU_mode : boolean;
+  CP2114_mode : boolean;
+  CP2114_hnd : HID_UART_DEVICE;
+
   open_simple_fast : boolean;
+
   procedure COM_init_as(speed:integer; parity:byte);
 
   property DTR:boolean write write_dtr;
@@ -248,8 +262,10 @@ const
  stm32_PID_High_density_vline    = $0428;
  stm32_PID_XL_density            = $0430;
  stm32_PID_ultralow_power_line   = $0416;
+ stm32_PID_ultralow_new          = $0429;
  stm32_PID_STM32F2xx             = $0411;
  stm32_PID_STM32F4xx             = $0413;
+ stm32_PID_STM32F745             = $0449;
 
 function stm32_save_file(file_name:string; data:pointer; data_size:cardinal) : boolean;
 var
@@ -302,7 +318,7 @@ begin
 
  {$I-}
  old_mode := filemode;
- filemode := fmOpenReadWrite;
+ filemode := fmOpenRead; //fmOpenReadWrite;
  AssignFile(f, file_name);
  reset(f,1);
  filemode := old_mode;
@@ -646,6 +662,7 @@ var
 begin
  result:=false;
  if stm32_find_disable_atm then exit;
+ if CP2114_mode then exit;
  stm32_info_string := 'Activate ATM';
 
  COM_init_as(port_speed, EVENPARITY);
@@ -843,18 +860,25 @@ begin
 
  error_code := CP210xRT_GetPartNumber(self.handle, @part_number);
  if error_code = CP210x_SUCCESS then
+  if part_number = 32 then
+   begin
+    Log_add('ERROR CP2102n make as CP2103!');
+    part_number := CP210x_CP2103_VERSION;
+   end;
+
+ if error_code = CP210x_SUCCESS then
   Log_add('CP210'+chr(ord('0')+part_number)+' chip detected')
  else
   Log_add('It''s not a CP210x chip');
 
  invert := 0;
- if (error_code = CP210x_SUCCESS) and (part_number = CP210x_CP2103_VERSION) then
+ if (error_code = CP210x_SUCCESS) and (part_number = CP210x_CP2103_VERSION) or CP2114_mode then
   begin
 {   if (try_n and 3) = 0 then invert := $00;
    if (try_n and 3) = 1 then invert := $05;
    if (try_n and 3) = 2 then invert := $0A;
    if (try_n and 3) = 3 then invert := $0F;}
-   
+
 {   CP210xRT_WriteLatch(self.handle, $0F, $0F xor $0F); sleep(64);
    CP210xRT_WriteLatch(self.handle, $0F, $0A xor $0F); sleep(256);
    CP210xRT_WriteLatch(self.handle, $0F, $0E xor $0F); sleep(64);
@@ -862,16 +886,35 @@ begin
 
    if sp_gatem_only_reset then
     begin
-     CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
-     CP210xRT_WriteLatch(self.handle, $03, $02 xor invert); sleep(16);
-     CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(600);
+     if CP2114_mode then
+      begin
+       HidUart_WriteLatch(CP2114_hnd, 0, 3);sleep(16);
+       HidUart_WriteLatch(CP2114_hnd, 3, 3);sleep(16);
+       HidUart_WriteLatch(CP2114_hnd, 0, 3);sleep(16);
+      end
+     else
+      begin
+       CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
+       CP210xRT_WriteLatch(self.handle, $03, $02 xor invert); sleep(16);
+       CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(600);
+      end;
     end
    else
     begin
-     CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
-     CP210xRT_WriteLatch(self.handle, $03, $03 xor invert); sleep(16);
-     CP210xRT_WriteLatch(self.handle, $03, $01 xor invert); sleep(64);
-     CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(128);
+     if CP2114_mode then
+      begin
+       HidUart_WriteLatch(CP2114_hnd, 0, 3);sleep(16);
+       HidUart_WriteLatch(CP2114_hnd, 3, 3);sleep(16);
+       HidUart_WriteLatch(CP2114_hnd, 1, 3);sleep(64);
+       HidUart_WriteLatch(CP2114_hnd, 0, 3);sleep(128);
+      end
+     else
+      begin
+       CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
+       CP210xRT_WriteLatch(self.handle, $03, $03 xor invert); sleep(16);
+       CP210xRT_WriteLatch(self.handle, $03, $01 xor invert); sleep(64);
+       CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(128);
+      end;
     end;
    exit;
   end;
@@ -949,15 +992,27 @@ begin
           stm32_task_verify or
           stm32_task_RDlock or
           stm32_task_UNlock) then
-   if CP210x_SUCCESS = CP210xRT_GetPartNumber(self.handle, @part_number) then
-    if part_number = CP210x_CP2103_VERSION then
+   begin
+    if CP2114_mode then
      begin
-      CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
-      CP210xRT_WriteLatch(self.handle, $03, $02); sleep(64);
-      CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
+      HidUart_WriteLatch(CP2114_hnd, 0, 3);sleep(64);
+      HidUart_WriteLatch(CP2114_hnd, 3, 3);sleep(64);
+      HidUart_WriteLatch(CP2114_hnd, 0, 3);sleep(64);
       result := true;
       exit;
-     end;
+     end
+    else
+     if CP210x_SUCCESS = CP210xRT_GetPartNumber(self.handle, @part_number) then
+      if (part_number = CP210x_CP2103_VERSION) or (part_number = 32) then
+       begin
+        log_add('Activate_armka: reset by gpio');
+        CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
+        CP210xRT_WriteLatch(self.handle, $03, $02); sleep(64);
+        CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
+        result := true;
+        exit;
+       end;
+   end;
 
  flg := true;
  for k:=1 to stm32_info_progress_total do
@@ -1010,6 +1065,7 @@ var
 begin
  result:=false;
  if stm32_find_disable_spgate then exit;
+ if CP2114_mode then exit;
 
  error_code := CP210xRT_GetPartNumber(self.handle, @part_number);
  if error_code = CP210x_SUCCESS then
@@ -1273,7 +1329,7 @@ begin
     if @evWR_loaded <> nil then
      evWR_loaded(self, stm32_task_filename, @stm32_flash_data[0], stm32_flash_size);
     if (not stm32_erase_ignore) or (stm32_PID = stm32_PID_ultralow_power_line) then
-     if boot_erase_all    then exit;
+    if boot_erase_all    then exit;
     if boot_write_flash  then exit;
     if boot_verify_flash then exit;
    end
@@ -1327,8 +1383,9 @@ var
  modem_stat:dword;
  length_byte : byte;
  cp_result : CP210x_STATUS;
+ parity : integer;
 label
- go_work, find_serial;
+ go_work, find_serial, go_activate;
 begin
  cw_retry := 0;
  cw_progress := 0;
@@ -1354,6 +1411,36 @@ begin
  stm32_info_string := 'Open COM port';
 
  ticks :=GetTickCount;
+
+ if SFU_mode then
+  begin
+   SFU_mode_run;
+   result := false;
+   exit;
+  end;
+
+ if is_cp2114(port_name) then
+  begin
+   parity := HID_UART_NO_PARITY;
+   if port_parity = NOPARITY    then parity := HID_UART_NO_PARITY;
+   if port_parity = EVENPARITY  then parity := HID_UART_EVEN_PARITY;
+   if port_parity = ODDPARITY   then parity := HID_UART_ODD_PARITY;
+   if port_parity = MARKPARITY  then parity := HID_UART_MARK_PARITY;
+   if port_parity = SPACEPARITY then parity := HID_UART_SPACE_PARITY;
+
+   self.zero_close := false;
+   CP2114_hnd := HidUart_open_serial(port_name, port_speed, parity, self.Log_add);
+
+   result := CP2114_hnd <> nil;
+   CP2114_mode := CP2114_hnd <> nil;
+
+   if no_activate or (not result) then
+    exit
+   else
+    goto go_activate;
+  end
+ else
+  CP2114_mode := false;
 
  if port_name_serial then
   begin
@@ -1492,11 +1579,13 @@ go_work:
   end
  else
   begin
+go_activate:
    if not activate_atm then
     if not activate_armka then
      if not activate_gate then
       begin
        FileClose(handle);
+       result := false;
        exit;
       end;
    ticks := GetTickCount - ticks;
@@ -1537,7 +1626,10 @@ go_work:
  if (stm32_task_enable = false) or no_activate or task_open_with_reset then
   result := true
  else
-  FileClose(handle);
+  begin
+   result := false;
+   FileClose(handle);
+  end;
 end;
 
 function tCOMClient.cw_upload:boolean;
@@ -1659,7 +1751,19 @@ begin
 end;
 
 function  tCOMClient.hardware_close;
+var
+ err : integer;
 begin
+ if CP2114_mode then
+  begin
+   err := HidUart_Close(CP2114_hnd);
+   Log_add('HidUart_Close(CP2114_hnd); // ' + hid_status_format(err));
+   result := true;
+   CP2114_hnd := nil;
+   CP2114_mode := false;
+   exit;
+  end;
+
  if active_mode = mode_atm then
   begin
    DTR := DTR_SET;
@@ -1710,12 +1814,14 @@ end;
 function tCOMClient.modem_status:dword;
 begin
  result:=0;
+ if CP2114_mode then exit;
  GetCommModemStatus(handle, result);
 end;
 
 procedure tCOMClient.write_dtr(v:boolean);
 begin
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  v := v xor invert_dtr;
 
@@ -1728,6 +1834,7 @@ end;
 procedure tCOMClient.write_rts(v:boolean);
 begin
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  v := v xor invert_rts;
 
@@ -1740,6 +1847,7 @@ end;
 procedure tCOMClient.write_break(v:boolean);
 begin
  if self=nil then exit;
+ if CP2114_mode then exit;
  if v = BREAK_SET then
   EscapeCommFunction(Handle, windows.SETBREAK)
  else
@@ -1750,6 +1858,7 @@ function  tCOMClient.read_rng:boolean;
 begin
  result := false;
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  if (modem_status and MS_RNG_MASK) = MS_RNG_VCC then
   result := RNG_VCC
@@ -1761,6 +1870,7 @@ function  tCOMClient.read_dcd:boolean;
 begin
  result := false;
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  if (modem_status and MS_DCD_MASK) = MS_DCD_VCC then
   result := DCD_VCC
@@ -1772,6 +1882,7 @@ function  tCOMClient.read_cts:boolean;
 begin
  result := false;
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  if (modem_status and MS_CTS_MASK) = MS_CTS_VCC then
   result := CTS_VCC
@@ -1783,6 +1894,7 @@ function  tCOMClient.read_dsr:boolean;
 begin
  result := false;
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  if (modem_status and MS_DSR_MASK) = MS_DSR_VCC then
   result := DSR_VCC
@@ -1794,6 +1906,7 @@ function  tcomclient.RNG_str:string;
 begin
  result := '';
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  if (modem_status and MS_RNG_MASK) = MS_RNG_VCC then
   result := 'RNG = VCC'
@@ -1805,6 +1918,7 @@ function  tcomclient.DCD_str:string;
 begin
  result := '';
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  if (modem_status and MS_DCD_MASK) = MS_DCD_VCC then
   result := 'DCD = VCC'
@@ -1816,6 +1930,7 @@ function  tcomclient.CTS_str:string;
 begin
  result := '';
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  if (modem_status and MS_CTS_MASK) = MS_CTS_VCC then
   result := 'CTS = VCC'
@@ -1827,6 +1942,7 @@ function  tcomclient.DSR_str:string;
 begin
  result := '';
  if self=nil then exit;
+ if CP2114_mode then exit;
 
  if (modem_status and MS_DSR_MASK) = MS_DSR_VCC then
   result := 'DSR = VCC'
@@ -1962,6 +2078,7 @@ begin
 
  while (milliseconds_get(timer) < timeout) and (count < data_size) and (count < length(readed_buf)) do
   begin
+
    if not ReadFile(Handle, readed_buf[count], length(readed_buf)-count, readed, nil) then
     begin
      Log_add('Error read');
@@ -1971,9 +2088,9 @@ begin
 
    if timeout >= 1000 then
     if check_stop then
-     begin
+    begin
       result:=true;
-      exit;
+     exit;
      end;
 
    inc(count,readed);
@@ -2100,7 +2217,7 @@ begin
  stm32_info_string :='Unlock STM32 flash';
  Log_add('=== Unlock STM32 flash ===');
 
- if (stm32_PID = stm32_PID_STM32F4xx) or (stm32_PID = stm32_PID_STM32F2xx)  then
+ if (stm32_PID = stm32_PID_STM32F4xx) or (stm32_PID = stm32_PID_STM32F745) or (stm32_PID = stm32_PID_STM32F2xx)  then
   timeout := 30000
  else
   timeout := 3000;
@@ -2167,12 +2284,17 @@ begin
   stm32_PID_High_density_vline     : name := 'High-density value line';
   stm32_PID_XL_density             : name := 'XL-density';
   stm32_PID_ultralow_power_line    : name := 'Mediumdensity ultralow power line';
+  stm32_PID_ultralow_new           : name := 'Mediumdensity ultralow power line new $429';
   stm32_PID_STM32F2xx              : name := 'STM32F2xx devices';
-  stm32_PID_STM32F4xx              : name := 'STM32F4xx devices';
+  stm32_PID_STM32F4xx              : name := 'STM32F40x devices';
+  stm32_PID_STM32F745              : name := 'STM32F745 devices';
  else
   name := 'UNKNOW';
  end;
  Log_add('stm32_PID = [0x' + inttohex(stm32_PID, 4)+'] : "'+name+'"');
+
+ if stm32_PID = stm32_PID_ultralow_new then
+  stm32_PID := stm32_PID_ultralow_power_line;
 
  Log_add(' ');
 
@@ -2239,7 +2361,7 @@ begin
 
  if stm32_PID = stm32_PID_ultralow_power_line then
   begin
-   Log_add('boot_read_info (flash_size and id) ignored for stm32_PID_ultralow_power_line series');
+   Log_add('boot_read_info (flash_size and id) ignored for stm32_PID_ultralow_xxx series');
    result := true;
    {//http://www.st.com/st-web-ui/static/active/en/resource/technical/document/reference_manual/CD00240193.pdf
    res_a := boot_read($1FF800CC,  @block[$00],  4);
@@ -2258,6 +2380,17 @@ begin
    if not boot_read($1FF8004C,  @STM32_info.flash_size, sizeof(STM32_info.flash_size)) then
    if not boot_read($1FF80050,  @STM32_info.cpu_id_a, 12) then
     result := false;}
+  end
+ else
+ if stm32_PID = stm32_PID_STM32F745 then
+  begin
+   result := boot_read($1FF0F420,  @block[0], math.Min(sizeof(block), $24));
+
+   if not result then
+    begin
+     move(block[$22], STM32_info.flash_size, sizeof(STM32_info.flash_size));
+     move(block[$00], STM32_info.cpu_id_a, 12);
+    end;
   end
  else
  if stm32_PID = stm32_PID_STM32F4xx then
@@ -2642,11 +2775,12 @@ begin
  Log_add('Writed size  = '+inttostr(to_write_size)+' by 4k blocks');
 
  if stm32_PID = stm32_PID_ultralow_power_line then
-  begin
-   Log_add('WARNING: 0xFF replaced to 0x00 in the end of firmware for stupid unstandard flash in STM32Lxxx series');
-   log_add('from: 0x' + inttohex(stm32_flash_loaded, 8) + ' size: ' + inttostr(to_write_size - stm32_flash_loaded));
-   ZeroMemory(@(stm32_flash_data[stm32_flash_loaded]), to_write_size - stm32_flash_loaded);
-  end;
+  if (to_write_size - stm32_flash_loaded) > 0 then
+   begin
+    Log_add('WARNING: 0xFF replaced to 0x00 in the end of firmware for stupid unstandard flash in STM32Lxxx series');
+    log_add('from: 0x' + inttohex(stm32_flash_loaded, 8) + ' size: ' + inttostr(to_write_size - stm32_flash_loaded));
+    ZeroMemory(@(stm32_flash_data[stm32_flash_loaded]), to_write_size - stm32_flash_loaded);
+   end;
 
  stm32_info_progress_current := 0;
  stm32_info_progress_total   := to_write_size;
@@ -2843,16 +2977,38 @@ procedure tcomclient.COM_init_as(speed:integer; parity:byte);
 var
  DCB:tDCB;
  CommTimeouts:TCommTimeouts;
+ p_val : integer;
+ res : integer;
 begin
  if speed = 0 then speed := CBR_115200;
  current_speed := speed;
  log_add('COM_init_as(speed='+inttostr(speed)+', parity='+inttostr(parity)+');');
 
+ if CP2114_mode then
+  begin
+   if speed > CBR_115200 then
+    speed := CBR_115200;
+
+   p_val := HID_UART_NO_PARITY;
+   if parity = NOPARITY    then p_val := HID_UART_NO_PARITY;
+   if parity = EVENPARITY  then p_val := HID_UART_EVEN_PARITY;
+   if parity = ODDPARITY   then p_val := HID_UART_ODD_PARITY;
+   if parity = MARKPARITY  then p_val := HID_UART_MARK_PARITY;
+   if parity = SPACEPARITY then p_val := HID_UART_SPACE_PARITY;
+
+   res := HidUart_SetUartConfig(CP2114_hnd, speed, HID_UART_EIGHT_DATA_BITS, p_val, HID_UART_LONG_STOP_BIT, HID_UART_NO_FLOW_CONTROL);
+   Log_add('HidUart_SetUartConfig(device, @boundrate, @databits, @parity, @stopbits, @flowconrol); // ' + hid_status_format(res));
+   Log_add(#9'baudRate = ' + inttostr(speed));
+   Log_add(#9'parity   = ' + inttostr(p_val));
+   Log_add(' ');
+   exit;
+  end;
+
  fillchar(DCB, sizeof(DCB), 0);
  DCB.DCBlength := sizeof(DCB);
 
  if not open_simple_fast then //????????????????
- GetCommState(handle, DCB);
+  GetCommState(handle, DCB);
  DCB.BaudRate:=speed;
  DCB.Parity:=parity;
  DCB.ByteSize:=8;
@@ -2866,7 +3022,7 @@ begin
  PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
 
  if not open_simple_fast then
- GetCommTimeouts(handle, CommTimeouts);
+  GetCommTimeouts(handle, CommTimeouts);
  CommTimeouts.ReadIntervalTimeout :=MAXDWORD;
  CommTimeouts.ReadTotalTimeoutMultiplier := 0;
  CommTimeouts.ReadTotalTimeoutConstant := 0;
@@ -2876,14 +3032,14 @@ begin
 
  if not open_simple_fast then
   begin
- DTR := dtr_clear;
- RTS := rts_clear;
- sleep(16);
- DTR := dtr_clear;
- RTS := rts_clear;
- PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
- DTR := dtr_clear;
- RTS := rts_clear;
+   DTR := dtr_clear;
+   RTS := rts_clear;
+   sleep(16);
+   DTR := dtr_clear;
+   RTS := rts_clear;
+   PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
+   DTR := dtr_clear;
+   RTS := rts_clear;
   end;
  Log_add(' ');
 end;
@@ -2941,5 +3097,408 @@ begin
   end;
  result := true;
 end;
+
+procedure hex_find_decode(str:string; start:string; var val:cardinal);
+var
+ index : integer;
+ num : string;
+begin
+ index := system.pos(start, str);
+ if index = 0 then exit;
+ delete(str, 1, index + length(start));
+
+ num := '';
+ while length(str) > 0 do
+  if upcase(str[1]) in ['0'..'9','A'..'F'] then
+   begin
+    num := num + str[1];
+    delete(str, 1, 1);
+   end
+  else
+   break;
+
+ try
+  val := strtoint('$' + num);
+ except
+  val := 0;
+ end;
+end;
+
+procedure tcomclient.sfu_status_update(tool_name:string);
+var
+ fname: string;
+ list : TStringList;
+ f : file;
+ old_mode : byte;
+ buf : array of byte;
+ cnt : integer;
+ fs : TMemoryStream;
+ str : string;
+
+ firmware_from : cardinal;
+ firmware_to   : cardinal;
+ firmware_pos  : cardinal;
+ pos : integer;
+begin
+ fs := nil;
+ list := nil;
+
+ firmware_from := 0;
+ firmware_to   := 0;
+ firmware_pos  := 0;
+
+ try
+  fname := ExtractFilePath(tool_name) +  'cmd.log';
+  if not FileExists(fname) then exit;
+  fs := TMemoryStream.Create;
+  list := TStringList.Create();
+
+  AssignFile(f, fname);
+{$I-}
+  old_mode := FileMode;
+  FileMode := fmOpenRead;
+  IOResult;
+  Reset(f, 1);
+  if IOResult <> 0 then
+   begin
+    FreeAndNil(fs);
+    FreeAndNil(list);
+    exit;
+   end;
+  FileMode := old_mode;
+  cnt := math.max(100000, filesize(f));
+  SetLength(buf, cnt);
+  if cnt <> 0 then
+   begin
+    BlockRead(f, buf[0], cnt);
+    fs.Write(buf[0], cnt);
+    fs.Seek(0, soBeginning);
+   end;
+  SetLength(buf, 0);
+  CloseFile(f);
+{$I+}
+
+  list.LoadFromStream(fs);
+  if list.Count < 2 then exit;
+
+  for pos := 0 to list.count-1 do
+   begin
+    hex_find_decode(list.Strings[pos], 'firmware_from: 0x', firmware_from);
+    hex_find_decode(list.Strings[pos], 'firmware_to  : 0x', firmware_to);
+    hex_find_decode(list.Strings[pos], 'WR: 0x', firmware_pos);
+   end;
+
+  if firmware_from <> 0 then
+   if firmware_to <> 0 then
+    if firmware_pos <> 0 then
+     begin
+      stm32_info_progress_total   := firmware_to - firmware_from;
+      stm32_info_progress_current := firmware_pos - firmware_from;
+     end;
+
+  str := list.Strings[list.count - 1];
+
+  if str = '' then
+   str := list.Strings[list.count - 2];
+
+  while Length(str) > 0 do
+   begin
+    if str[1] in ['0'..'9', #9] then
+     delete(str, 1, 1)
+    else
+     break;
+   end;
+
+  for pos := 1 to length(str) - 1 do
+   if str[pos] = #9 then
+    str[pos] := ' ';
+
+  if str <> '' then
+   begin
+    if stm32_info_string <> str then
+     Log_add(str);
+    stm32_info_string := str;
+   end;
+
+  FreeAndNil(list);
+  FreeAndNil(fs);
+  exit;
+ except
+  FreeAndNil(fs);
+  FreeAndNil(list);
+  exit;
+ end;
+end;
+
+type
+ teunumlogevent = procedure (msg:string) of object;
+ tenuminfo = record
+  pid : THandle;
+  phwnd : ^HWND;
+  log : teunumlogevent;
+ end;
+ penuminfo = ^tenuminfo;
+
+function EnumWindowsProcMy(find_hwnd:hwnd; lParam:penuminfo):LongBool; stdcall;
+var
+ lpdwProcessId : THandle;
+ classname : array[0..1024]of char;
+ titlestr  : array[0..1024]of char;
+begin
+ lpdwProcessId := 0;
+ GetWindowThreadProcessId(find_hwnd, @lpdwProcessId);
+
+ FillChar(classname, sizeof(classname), 0);
+ FillChar(titlestr,  sizeof(titlestr),  0);
+ GetClassName(find_hwnd, classname, length(classname));
+ GetWindowText(find_hwnd, titlestr, length(titlestr));
+ //lparam.log(IntToHex(find_hwnd, 8) + ' ' + classname + ' ' + titlestr);
+
+ //TForm1 SFU uploader
+ result := (lpdwProcessId <> lparam^.pid) or
+           (classname <> 'TForm1') or
+           (copy(titlestr, 1, 3) <> 'SFU');
+
+ if not result then
+  begin
+   lparam^.phwnd^ := find_hwnd;
+   //lparam.log('!!!');
+  end;
+end;
+
+const
+ WM_SYSCOMMAND = $0112;
+
+function tcomclient.run_program(exe_name:pchar; param_str:pchar; wait_ms:integer=INFINITE; done_flg:pboolean = nil;  exitcode:pcardinal = nil):boolean;
+var
+ si : STARTUPINFO;
+ pi : PROCESS_INFORMATION;
+ wait_res : integer;
+ time : cardinal;
+ Indicador :Integer;
+ ei : tenuminfo;
+ win : HWND;
+begin
+ ZeroMemory( @si, sizeof(si) );
+ si.cb := sizeof(si);
+ ZeroMemory( @pi, sizeof(pi) );
+
+ si.dwFlags := STARTF_USESHOWWINDOW;
+ si.wShowWindow := SW_MINIMIZE;
+
+ if  not CreateProcess(exe_name,
+        pchar('"'+exe_name + '" ' + param_str),
+        nil,        // Process handle not inheritable
+        nil,        // Thread handle not inheritable
+        FALSE,      // Set handle inheritance to FALSE
+        CREATE_NO_WINDOW,          // No creation flags
+        nil,        // Use parent's environment block
+        nil,        // Use parent's starting directory
+        si,         // Pointer to STARTUPINFO structure
+        pi )        // Pointer to PROCESS_INFORMATION structure
+ then
+  begin
+   Log_add('Can''t run converter program: '#13 + SysErrorMessage(GetLastError) + #13 +
+               'Command:' + param_str);
+   result := false;
+   exit;
+  end
+ else
+  result := true;
+
+ time := GetTickCount;
+ while (GetTickCount - time) < 1000 do
+  begin
+   sleep(32);
+   Indicador := FindWindow(nil, PChar('SFU uploader'));
+   //if (Indicador <> 0) then
+   win := 0;
+   ei.pid := pi.dwProcessId;
+   ei.phwnd := @win;
+   ei.log := self.Log_add;
+   EnumWindows(@EnumWindowsProcMy, integer(@ei));
+   if win <> 0 then
+    begin
+     log_add('SFU HWND: '+inttohex(win, 8) + ' ' + inttohex(Indicador, 8));
+     sleep(32);
+     PostMessage(win, WM_SYSCOMMAND , SC_MINIMIZE, 0); //$0112 - WM_SYSCOMMAND
+    end
+   else
+    begin
+     log_add('NF');
+     sleep(16);
+    end;
+  end;
+
+ if wait_ms <> 0 then
+  begin
+   while (GetTickCount - time) < wait_ms do
+    begin
+     wait_res := WaitForSingleObject(pi.hProcess, 100);
+     sfu_status_update(exe_name);
+
+     if wait_res = WAIT_OBJECT_0 then
+      break;
+
+     if stm32_task_stop then
+      begin
+       TerminateProcess(pi.hProcess, 255);
+       stm32_info_string := 'SFU aborted by ARMka user';
+       if done_flg <> nil then
+        done_flg^ := true;
+       if exitcode <> nil then
+        exitcode^ := 0;
+       CloseHandle(pi.hProcess);
+       CloseHandle(pi.hThread);
+       exit;
+      end;
+    end;
+
+   if done_flg <> nil then
+    done_flg^ := (wait_res = WAIT_OBJECT_0);
+
+   if wait_res <> WAIT_OBJECT_0 then
+    TerminateProcess(pi.hProcess, 255)
+   else
+    begin
+     if exitcode <> nil then
+      GetExitCodeProcess(pi.hProcess, exitcode^);
+    end;
+  end;
+
+ CloseHandle(pi.hProcess);
+ CloseHandle(pi.hThread);
+end;
+
+procedure tcomclient.SFU_mode_run;
+var
+ tool_path : string;
+ params : string;
+ done : boolean;
+ exitcode : cardinal;
+ started : boolean;
+begin
+ tool_path := ExtractFilePath(ParamStr(0)) + 'FastTest.exe';
+ if not FileExists(tool_path) then exit;
+ if stm32_task_filename = '' then exit;
+ if not FileExists(stm32_task_filename) then exit;
+
+ params := ' -go -fast -RST -exit -no-Errors-Keep "' + stm32_task_filename + '"';
+ if port_name <> '' then
+  params := params + ' -DEV:' + port_name;
+
+ stm32_info_result := '';
+ stm32_info_string := '';
+ 
+ done := false;
+ exitcode := $FFFFFFFF;
+ started := run_program(pchar(tool_path), pchar(params), 5*60*1000, @done, @exitcode);
+
+ if not started then
+  begin
+   stm32_info_string := 'SFU run Error: ' + tool_path;
+   exit;
+  end;
+
+ if not done then
+  begin
+   stm32_info_string := 'SFU program Timeout';
+   exit;
+  end;
+
+ if exitcode <> 0 then
+  begin
+   if exitcode = 1 then stm32_info_string := 'SFU ERROR: process' else
+   if exitcode = 2 then stm32_info_string := 'SFU ERROR: aborted' else
+   if exitcode > 2 then stm32_info_string := 'SFU unknow ERROR';
+   
+   exit;
+  end;
+
+ stm32_info_result := datetostr(date)+' '+TimeToStr(time) + ' SFU Done';
+end;
+
+function tcomclient.WriteFile(hFile: THandle; const Buffer; nNumberOfBytesToWrite: DWORD; var lpNumberOfBytesWritten: DWORD; lpOverlapped: POverlapped): BOOL;
+var
+ err : integer;
+ buf : pbyte;
+ cnt : integer;
+ writen : cardinal;
+const
+ block_size = 256;
+begin
+ result := false;
+
+ if CP2114_mode then
+  begin
+   buf := @buffer;
+   lpNumberOfBytesWritten := 0;
+
+   while nNumberOfBytesToWrite > 0 do
+    begin
+     writen := 0;
+     cnt := math.Min(nNumberOfBytesToWrite, block_size);
+     err := HidUart_Write(CP2114_hnd, buf, cnt, @writen);
+
+     if err <> HID_UART_SUCCESS then
+      begin
+       Log_add('WRITE ERROR: ' + hid_status_format(err));
+       exit;
+      end;
+
+     if cnt <> writen then
+      begin
+       Log_add('WRITE ERROR writen <> cnt: ' + inttostr(cnt) + #9 + inttostr(writen));
+       exit;
+      end;
+
+     inc(buf, cnt);
+     dec(nNumberOfBytesToWrite, cnt);
+     inc(lpNumberOfBytesWritten, cnt);
+    end;
+   result := true;;
+  end
+ else
+  result := windows.WriteFile(hFile, buffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
+end;
+
+function tcomclient.ReadFile(hFile: THandle; var Buffer; nNumberOfBytesToRead: DWORD; var lpNumberOfBytesRead: DWORD; lpOverlapped: POverlapped): BOOL;
+var
+ err : integer;
+begin
+ if CP2114_mode then
+  begin
+   err := HidUart_Read(CP2114_hnd, @buffer, math.min(HID_UART_MAX_READ_SIZE, nNumberOfBytesToRead), @lpNumberOfBytesRead);
+   result := true;
+   if err <> HID_UART_SUCCESS then
+    if err <> HID_UART_READ_TIMED_OUT then
+     begin
+      Log_add('READ ERROR: ' + hid_status_format(err));
+      result := false;
+     end;
+  end
+ else
+  result := windows.ReadFile(hFile, buffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
+end;
+
+procedure tcomclient.FileClose(Handle: THandle);
+var
+ err : integer;
+begin
+ if CP2114_mode then
+  begin
+   err := HidUart_Close(CP2114_hnd);
+   if err <> HID_UART_SUCCESS then
+    Log_add('CLOSE ERROR: ' + hid_status_format(err));
+   CP2114_mode := false;
+  end
+ else
+  begin
+   if handle <> 0 then
+    if handle <> INVALID_HANDLE_VALUE then
+     sysutils.FileClose(handle);
+  end;
+end;
+
 
 end.

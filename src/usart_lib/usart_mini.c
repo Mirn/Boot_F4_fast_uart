@@ -33,8 +33,8 @@
 #define USART_BOD 921600
 //#define USART_BOD 115200
 
-#define USE_USART1
-//#define USE_USART3
+//#define USE_USART1
+#define USE_USART3
 
 #ifdef USE_USART1
 #define USART USART1
