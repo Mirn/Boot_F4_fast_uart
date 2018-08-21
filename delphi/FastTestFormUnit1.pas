@@ -440,9 +440,10 @@ begin
  device.port_name := DeviceEdit.Text;
  device.port_name_serial := (device.port_name <> '') and
                             (copy(device.port_name, 1, 3) <> 'COM') and
-                            (system.pos('USB#VID', device.port_name) = 0);
+                            (system.pos('USB#VID', UpperCase(device.port_name)) = 0);
 
  device.Open;
+ sleep(32);
  start_time := GetTickCount;
  while (GetTickCount - start_time) < 5000 do
   begin
@@ -456,6 +457,11 @@ begin
 
  if device.State <> link_establish then
   begin
+   if device.State = link_error then     onLogDev(self, 'Device state: link_error');
+   if device.State = link_idle then      onLogDev(self, 'Device state: link_idle');
+   if device.State = link_establish then onLogDev(self, 'Device state: link_establish');
+   if device.State = link_close then     onLogDev(self, 'Device state: link_close');
+
    boot.task_error := true;
    boot.task_info := 'Device open timeout ERROR';
    onLogDev(self, 'Device open timeout ERROR');

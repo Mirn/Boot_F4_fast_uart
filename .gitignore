@@ -6,6 +6,7 @@
 *.obj
 *.dcu
 *.dsk
+*.dsm
 
 # Precompiled Headers
 *.gch
