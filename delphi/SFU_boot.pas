@@ -364,7 +364,9 @@ begin
   send_write_multi(64);
 
  erase_done := true;
- send_timeout := GetTickCount + TIMEOUT_WRITE + 100; //for 115200 bod: after erase additional start delay 100ms
+ send_timeout := GetTickCount + TIMEOUT_WRITE;
+ send_timeout := send_timeout + 100;  //for 115200 bod: after erase additional start delay 100ms
+ send_timeout := send_timeout + 2000; //for STM32H7 first write after erase delay ~1000ms
 end;
 
 procedure tSFUboot.recive_write(body:pbyte; count:word);
