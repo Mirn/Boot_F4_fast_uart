@@ -41,3 +41,7 @@ $RECYCLE.BIN/
 
 
 *.bak
+delphi/Release/raw_log.dat
+delphi/Release/FastTest.exe.config
+delphi/Release/dev.log
+delphi/Release/cmd.log

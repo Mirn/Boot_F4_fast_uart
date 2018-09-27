@@ -51,15 +51,11 @@ Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
-RunParams=-go -fast -reset -dev:\\?\usb#vid_10c4&pid_ea60#prog_mini_77#{a2a39220-39f4-4b88-aecb-3d86a35dc748}  Z:\other_prj\F745_realtime_triangle_recognition\Release\F745_realtime_triangle_recognition.bin
+RunParams=
 HostApplication=
 Launcher=
 UseLauncher=0
 DebugCWD=
-[Language]
-ActiveLang=
-ProjectLang=
-RootDir=
 [Version Info]
 IncludeVerInfo=0
 AutoIncBuild=0
@@ -85,12 +81,3 @@ OriginalFilename=
 ProductName=
 ProductVersion=1.0.0.0
 Comments=
-[HistoryLists\hlUnitAliases]
-Count=1
-Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
-[HistoryLists\hlUnitOutputDirectory]
-Count=1
-Item0=Units
-[HistoryLists\hlOutputDirectorry]
-Count=1
-Item0=Release
