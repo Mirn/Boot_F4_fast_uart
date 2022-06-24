@@ -3,28 +3,29 @@ unit CP2102_classes;
 interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, registry,
-  CP210xManufacturingDLL;
+  CP210xManufacturingDLL,
+  CP2102n_config_rec;
 
 type
   tCP210x_log_event = procedure(s:string) of object;
 
-  tCP2102_reg_item = record     //Запись информации о ком портах SiLabs CP2102 на базе реестрта
-   com_name    : string;        //Имя ком порта в винде, в виде "COMxxx", например "COM7"
-   path        : string;        //Путь к символьному файлу для открытия устройства ком порта , рекомендуется по данному именю открывать файл
-   serial      : string;        //Серийник для данного ком порта, до 16 символов, количество указано в константе CP210x_MAX_SERIAL_STRLEN в CP210xManufacturingDLL
+  tCP2102_reg_item = record     //Запись инЎ¦рмации Ў¦коЎ¦портах SiLabs CP2102 на базе реестрта
+   com_name    : string;        //Имя коЎ¦портЎ¦Ў¦винджО Ў¦виде "COMxxx", например "COM7"
+   path        : string;        //Ў¦ть Ў¦символьномЎ¦Ў¦йлЎ¦для открытЎ¦ устройства коЎ¦портЎ¦, рекомендуется по данномЎ¦именЎ¦открыватЎ¦Ў¦йл
+   serial      : string;        //Серийник для данногЎ¦коЎ¦портЎ¦ до 16 символов, колиЎ¦ство указанЎ¦Ў¦константжВCP210x_MAX_SERIAL_STRLEN Ў¦CP210xManufacturingDLL
   end;
 
-  tCP210x_enum_item = record    //Запись информации о ком портах SiLabs CP2102 на базе реестрта и CP210xManufacturingDLL
-   com_name    : string;        //Имя ком порта в винде, в виде "COMxxx", например "COM7"
-   com_path    : string;        //Путь к символьному файлу для открытия устройства ком порта , рекомендуется по данному именю открывать файл
-   serial      : string;        //Серийник для данного ком порта, до 16 символов, количество указано в константе CP210x_MAX_SERIAL_STRLEN в CP210xManufacturingDLL
-   usb_path    : string;        //Путь к файлу для настройки и считывания параметров как усб устройства, типа дескриптора, серийника, их прошивки и тд, ВНИМАНИЕ! он отличается от com_path
-   description : string;        //Дескриптор ком порта на уровне винды, он отличается от дескриптора на уровне настроек, и всегда равен тому что прописано в драйверах винды, на разных виндах по разному, как правило Silicon Labs CP210x USB to UART Bridge
+  tCP210x_enum_item = record    //Запись инЎ¦рмации Ў¦коЎ¦портах SiLabs CP2102 на базе реестрта Ў¦CP210xManufacturingDLL
+   com_name    : string;        //Имя коЎ¦портЎ¦Ў¦винджО Ў¦виде "COMxxx", например "COM7"
+   com_path    : string;        //Ў¦ть Ў¦символьномЎ¦Ў¦йлЎ¦для открытЎ¦ устройства коЎ¦портЎ¦, рекомендуется по данномЎ¦именЎ¦открыватЎ¦Ў¦йл
+   serial      : string;        //Серийник для данногЎ¦коЎ¦портЎ¦ до 16 символов, колиЎ¦ство указанЎ¦Ў¦константжВCP210x_MAX_SERIAL_STRLEN Ў¦CP210xManufacturingDLL
+   usb_path    : string;        //Ў¦ть Ў¦Ў¦йлЎ¦для настройкЎ¦Ў¦считыванЎ¦ параметров каЎ¦усвВустройства, типа дескрипторЎ¦ серийникЎ¦ их прошивки Ў¦тд, ВНИМАНИЕ! он отлиЎ¦еттЎ от com_path
+   description : string;        //Дескриптор коЎ¦портЎ¦на уровне виндьО он отлиЎ¦еттЎ от дескрипторЎ¦на уровне настроек, Ў¦всегда равеоВтому Ў¦Ў¦прописанЎ¦Ў¦драйвераЎ¦виндьО на разных виндах по разномЎ¦ каЎ¦правилЎ¦Silicon Labs CP210x USB to UART Bridge
   end;
 
 
 
-  tCP2102_reg_list = class //Класс - список доступных в данный момент устройств на базе инфы с реестра
+  tCP2102_reg_list = class //КластВ- список доступныЎ¦Ў¦данный момент устройстЎ¦на базе инЎ¦ тВреестр
   private
    v_table : array of tCP2102_reg_item;
    v_Log   : tCP210x_log_event;
@@ -37,14 +38,14 @@ type
    constructor create(evLog:tCP210x_log_event = Nil);
    destructor destroy;override;
 
-   property list[index: integer]:tCP2102_reg_item read getter;          //Список подключенных устройств с информацией, см описание записи tCP2102_reg_item
-   property count:integer read get_count;                               //Количество записей в списке
-   function find_serial(serial:string; var index:integer):boolean;      //Найти по серийному номеру, если True то найдено и индекс в соотв. переменной
+   property list[index: integer]:tCP2102_reg_item read getter;          //Список подклюЎ¦нных устройстЎ¦тВинЎ¦рмациекО см описание записи tCP2102_reg_item
+   property count:integer read get_count;                               //КолиЎ¦ство записекВЎ¦списке
+   function find_serial(serial:string; var index:integer):boolean;      //НайтЎ¦по серийномЎ¦номеру, если True то найденЎ¦Ў¦индекс Ў¦соотЎ¦ переменной
   end;
 
 
 
-  tCP210x_enum = class          //Класс - список доступных в данный момент устройств на базе инфы с реестра и AN144 + CP210xManufacturingDLL
+  tCP210x_enum = class          //КластВ- список доступныЎ¦Ў¦данный момент устройстЎ¦на базе инЎ¦ тВреестрЎ¦Ў¦AN144 + CP210xManufacturingDLL
   private
    v_table : array of tCP210x_enum_item;
    v_Log   : tCP210x_log_event;
@@ -63,7 +64,7 @@ type
 
 
 
-  tCP210x_config = class //Класс доступа к настройкам устройства на уровне УСБ - серийник, дескриптор и тд, согласно AN144
+  tCP210x_config = class //КластВдоступЎ¦Ў¦настройкам устройства на уровне УСВВ- серийник, дескриптор Ў¦тд, согласно AN144
   private
    handle : thandle;
    v_Log   : tCP210x_log_event;
@@ -73,17 +74,20 @@ type
   public
    function  port_present:boolean;
 
-   function  read_part_num:string;           //Считать тип устройства, = "CP2102"
+   function  read_part_num:string;           //СчитатЎ¦тирВустройства, = "CP2102"
    function  read_VID:string;
    function  read_PID:string;
-   function  read_product_string:string;     //Дескриптор устройства на уровне усб а не реестра
+   function  read_product_string:string;     //Дескриптор устройства на уровне усвВЎ¦не реестр
    function  read_serial_string:string;      //Серийник, до 16 символов
-   function  read_device_version:string;     //Версия устройства, BCD формат, два байта, от 0 до 99 каждый, преобразуется в строку например вида "01.23"
-   function  read_lock:string;               //Считать флаг блокировки изменений, если равен "True" то запись невозможна
-   function  read_max_power:string;          //Максимальное потребление тока в миллиамперах, число в виде строки напимер "100" - 100мА
+   function  read_device_version:string;     //ВерсЎ¦ устройства, BCD Ў¦рмат, двЎ¦байтЎ¦ от 0 до 99 каждый, преобразуется Ў¦строку например вида "01.23"
+   function  read_lock:string;               //СчитатЎ¦Ў¦аг блокировки измененикО если равеоВ"True" то запись невозможна
+   function  read_max_power:string;          //Максимальное потребленижВтока Ў¦миллиамперах, Ў¦слЎ¦Ў¦виде строки напимеЎ¦"100" - 100мА
    function  read_port_config:tCP2103_PORT_CONFIG;
 
-   function  write_product_string(value:string):boolean; //Процедуры записи. аналогично чтению, так же принимают строковые параметры. если вернут True - ошибка записи.
+   function  read_confing:tCP2102n_config;
+   function  write_confing(cfg:tCP2102n_config):boolean;
+
+   function  write_product_string(value:string):boolean; //Ў¦оцедурьВзаписи. аналогично Ў¦ению, таЎ¦же принимаюЎ¦строковыжВпараметрьР если вернут True - ошибка записи.
    function  write_serial_string(value:string):boolean;
    function  write_device_version(value:string):boolean;
    function  write_max_power(value:string):boolean;
@@ -91,14 +95,14 @@ type
    function  write_pid(value:string):boolean;
    function  write_port_config(port_config:tCP2103_PORT_CONFIG):boolean;
 
-   procedure Reset; //Сброс устройства, после сброса нужно деинициализировать класс, дальнейшая устройства невозможно т.к. устройство переподключется на усб логически и сменит хандл.
+   procedure Reset; //СбротВустройства, послжВсброса нужнЎ¦деинициализировать кластО дальнейшЎ¦ устройства невозможно Ў¦Ў¦ устройство переподклюЎ¦тся на усвВлогиЎ¦скЎ¦Ў¦сменит Ў¦ндмР
 
-   constructor create(num:cardinal; evLog:tCP210x_log_event = Nil); //Номер устройства - позиция в списке tCP210x_enum согласно AN144
+   constructor create(num:cardinal; evLog:tCP210x_log_event = Nil); //НомеЎ¦устройства - позиЎ¦я Ў¦списке tCP210x_enum согласно AN144
    destructor destroy;override;
   end;
 
- function CP210x_check_error(log:tCP210x_log_event; error_code:CP210x_STATUS):boolean; //код статуса проверяет на ошибку и если она есть вывыодит в лог и возвращает True, если ошибки нет то False
- function connected_com_ports(evLog:tCP210x_log_event):tstringlist; //Строит общий список всех доступных ком портов в системме, неважно каких ком портов, любые.
+ function CP210x_check_error(log:tCP210x_log_event; error_code:CP210x_STATUS):boolean; //коЎ¦статусЎ¦проверяет на ошибку Ў¦если онЎ¦есть вывыодит Ў¦лодВЎ¦возвращает True, если ошибки неЎ¦то False
+ function connected_com_ports(evLog:tCP210x_log_event):tstringlist; //Строит общикВсписок всех доступныЎ¦коЎ¦портов Ў¦системме, неважнЎ¦какиЎ¦коЎ¦портов, любыжР
 
 implementation
 
@@ -159,11 +163,11 @@ var
 begin
  Part_Num:=$FF;
  err:=CP210x_GetPartNumber(handle, @Part_Num);
- log('CP210x_PartNum       = '+'CP210'+inttohex(Part_Num, 1));
- if CP210x_check_error(log, err) or (Part_Num>$F) then
+ log('CP210x_PartNum       = '+'CP21'+inttohex(Part_Num, 2));
+ if CP210x_check_error(log, err) or (Part_Num>$7F) then
   result:='_ERROR_'
  else
-  result:='CP210'+inttohex(Part_Num, 1);
+  result:='CP21'+inttohex(Part_Num, 2);
 end;
 
 function  tCP210x_config.read_VID:string;
@@ -313,6 +317,49 @@ begin
 
  err:=CP210x_SetProductString(handle, info, info_length, TRUE);
  log('CP210x_SetProductString("'+inttohex(handle,8)+', '+info+', '+inttostr(info_length)+', TRUE);');
+ if CP210x_check_error(log, err) then
+  result:=true
+ else
+  result:=false;
+end;
+
+function  tCP210x_config.read_confing:tCP2102n_config;
+var
+ err:integer;
+ fs : tfilestream;
+begin
+ result := nil;
+ if read_part_num <> 'CP2120' then exit;
+ result := tCP2102n_config.create;
+ err:=CP210x_GetConfig(handle, @result.rec, sizeof(result.rec));
+ log('CP210x_GetConfig('+inttohex(handle,8)+', "@result.rec", '+inttostr(sizeof(result.rec))+');');
+ if CP210x_check_error(log, err) then
+  FreeAndNil(result)
+ else
+  begin
+   fs := tfilestream.Create('cp2102n_backup.bin', fmCreate or fmOpenwrite);
+   fs.Write(result.rec, sizeof(result.rec));
+   FreeAndNil(fs);
+
+   if result.rec.FLETCHER_CHECKSUM <> result.calc_crc then
+    begin
+     log('rec.FLETCHER_CHECKSUM  = ' + inttohex(result.rec.FLETCHER_CHECKSUM, 4));
+     log('result.calc_crc  = ' + inttohex(result.calc_crc, 4));
+     log('CHECK SUM ERRORR!!!');
+     FreeAndNil(result);
+    end;
+  end;
+end;
+
+function tCP210x_config.write_confing(cfg:tCP2102n_config):boolean;
+var
+ err:integer;
+begin
+ if cfg = nil then exit;
+ if read_part_num <> 'CP2120' then exit;
+ cfg.update_crc;
+ err:=CP210x_SetConfig(handle, @cfg.rec, sizeof(cfg.rec));
+ log('CP210x_SETConfig('+inttohex(handle,8)+', "@cfg.rec", '+inttostr(sizeof(cfg.rec))+');');
  if CP210x_check_error(log, err) then
   result:=true
  else

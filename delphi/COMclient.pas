@@ -68,6 +68,7 @@ type
   stm32_boot_version : byte;
   stm32_options      : word;
   stm32_PID          : word;
+  stm32_PID_M0series : boolean;
 
   stm32_flash_loaded : cardinal;
   stm32_flash_size   : cardinal;
@@ -266,6 +267,15 @@ const
  stm32_PID_STM32F2xx             = $0411;
  stm32_PID_STM32F4xx             = $0413;
  stm32_PID_STM32F745             = $0449;
+ stm32_PID_STM32F030x4or6        = $0444;
+ stm32_PID_STM32F070x6           = $0445;
+ stm32_PID_STM32F030x8           = $0440;
+ stm32_PID_STM32F070xB           = $0448;
+ stm32_PID_STM32F030xC           = $0442;
+ stm32_PID_STM32F303xBCor358     = $0422;
+ stm32_PID_STM32F303x68or328     = $0438;
+ stm32_PID_STM32F303xDEor398     = $0446;
+
 
 function stm32_save_file(file_name:string; data:pointer; data_size:cardinal) : boolean;
 var
@@ -274,7 +284,7 @@ var
  old_mode : integer;
 begin
  result := false;
- if data_size>100000000 then exit;
+ if data_size>1000000000 then exit;
 
  GetLastError;
  old_mode := filemode;
@@ -859,20 +869,14 @@ begin
   log_add('Can''t load gate serial lib');
 
  error_code := CP210xRT_GetPartNumber(self.handle, @part_number);
- if error_code = CP210x_SUCCESS then
-  if part_number = 32 then
-   begin
-    Log_add('ERROR CP2102n make as CP2103!');
-    part_number := CP210x_CP2103_VERSION;
-   end;
 
  if error_code = CP210x_SUCCESS then
-  Log_add('CP210'+chr(ord('0')+part_number)+' chip detected')
+  Log_add('detected CP210n model code: '+inttostr(part_number))
  else
   Log_add('It''s not a CP210x chip');
 
  invert := 0;
- if (error_code = CP210x_SUCCESS) and (part_number = CP210x_CP2103_VERSION) or CP2114_mode then
+ if (error_code = CP210x_SUCCESS) and (part_number >= CP210x_CP2103_VERSION) or CP2114_mode then
   begin
 {   if (try_n and 3) = 0 then invert := $00;
    if (try_n and 3) = 1 then invert := $05;
@@ -894,9 +898,18 @@ begin
       end
      else
       begin
-       CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
-       CP210xRT_WriteLatch(self.handle, $03, $02 xor invert); sleep(16);
-       CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(600);
+       if part_number = 33 then //for CP2102N-A02-GQFN24R
+        begin
+         CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
+         CP210xRT_WriteLatch(self.handle, $03, $01 xor invert); sleep(16);
+         CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(600);
+        end
+       else
+        begin
+         CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
+         CP210xRT_WriteLatch(self.handle, $03, $02 xor invert); sleep(16);
+         CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(600);
+        end;
       end;
     end
    else
@@ -910,10 +923,20 @@ begin
       end
      else
       begin
-       CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
-       CP210xRT_WriteLatch(self.handle, $03, $03 xor invert); sleep(16);
-       CP210xRT_WriteLatch(self.handle, $03, $01 xor invert); sleep(64);
-       CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(128);
+       if part_number = 33 then  //for CP2102N-A02-GQFN24R
+        begin
+         CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
+         CP210xRT_WriteLatch(self.handle, $03, $03 xor invert); sleep(16);
+         CP210xRT_WriteLatch(self.handle, $03, $02 xor invert); sleep(64);
+         CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(128);
+        end
+       else
+        begin
+         CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
+         CP210xRT_WriteLatch(self.handle, $03, $03 xor invert); sleep(16);
+         CP210xRT_WriteLatch(self.handle, $03, $01 xor invert); sleep(64);
+         CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(128);
+        end;
       end;
     end;
    exit;
@@ -942,15 +965,16 @@ begin
    sleep(1);
   end;
 
- PurgeComm(handle, PURGE_TXABORT);
- PurgeComm(handle, PURGE_RXABORT);
- PurgeComm(handle, PURGE_TXCLEAR);
- PurgeComm(handle, PURGE_RXCLEAR);
- sleep(16);
- PurgeComm(handle, PURGE_TXABORT);
- PurgeComm(handle, PURGE_RXABORT);
- PurgeComm(handle, PURGE_TXCLEAR);
- PurgeComm(handle, PURGE_RXCLEAR);
+  com_read_data(nil, 1000, nil, 10);
+// PurgeComm(handle, PURGE_TXABORT);
+// PurgeComm(handle, PURGE_RXABORT);
+// PurgeComm(handle, PURGE_TXCLEAR);
+// PurgeComm(handle, PURGE_RXCLEAR);
+// sleep(16);
+// PurgeComm(handle, PURGE_TXABORT);
+// PurgeComm(handle, PURGE_RXABORT);
+// PurgeComm(handle, PURGE_TXCLEAR);
+// PurgeComm(handle, PURGE_RXCLEAR);
 end;
 
 function tCOMClient.activate_armka:boolean;
@@ -1003,12 +1027,21 @@ begin
      end
     else
      if CP210x_SUCCESS = CP210xRT_GetPartNumber(self.handle, @part_number) then
-      if (part_number = CP210x_CP2103_VERSION) or (part_number = 32) then
+      if (part_number >= CP210x_CP2103_VERSION) then
        begin
         log_add('Activate_armka: reset by gpio');
-        CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
-        CP210xRT_WriteLatch(self.handle, $03, $02); sleep(64);
-        CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
+        if part_number = 33 then  //for CP2102N-A02-GQFN24R
+         begin
+          CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
+          CP210xRT_WriteLatch(self.handle, $03, $01); sleep(64);
+          CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
+         end
+        else
+         begin
+          CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
+          CP210xRT_WriteLatch(self.handle, $03, $02); sleep(64);
+          CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
+         end;
         result := true;
         exit;
        end;
@@ -1601,6 +1634,7 @@ go_activate:
      if stm32_task_verify then stm32_info_result := stm32_info_result + ' [Verify]' else
       stm32_info_result := stm32_info_result + ' [RESET]';
      Log_add(' ');
+     Log_add('TASK DONE:');
      Log_add(stm32_info_result);
      Log_add(' ');
     end
@@ -1615,11 +1649,11 @@ go_activate:
 
  if task_open_with_reset then
   begin
-   PurgeComm(handle, PURGE_RXCLEAR);
-   PurgeComm(handle, PURGE_RXABORT);
+//   PurgeComm(handle, PURGE_RXCLEAR);
+//   PurgeComm(handle, PURGE_RXABORT);
    com_read_data(nil, 1000, nil, 10);
-   PurgeComm(handle, PURGE_RXABORT);
-   PurgeComm(handle, PURGE_RXCLEAR);
+//   PurgeComm(handle, PURGE_RXABORT);
+//   PurgeComm(handle, PURGE_RXCLEAR);
   end;
 
  zero_close:=false;
@@ -1771,7 +1805,7 @@ begin
    sleep(100);
   end;
 
- PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
+ //PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
  FileClose(handle);
  handle:=$FFFFFFFF;
 
@@ -2273,6 +2307,7 @@ begin
    exit;
   end;
 
+ stm32_PID_M0series := false;
  stm32_PID := word(id_info.PID_L) or (word(id_info.PID_H) shl 8);
 
  case stm32_PID of
@@ -2288,6 +2323,14 @@ begin
   stm32_PID_STM32F2xx              : name := 'STM32F2xx devices';
   stm32_PID_STM32F4xx              : name := 'STM32F40x devices';
   stm32_PID_STM32F745              : name := 'STM32F745 devices';
+  stm32_PID_STM32F030x4or6         : begin name := 'stm32_PID_STM32F030x4or6 devices'; stm32_PID_M0series := true; end;
+  stm32_PID_STM32F070x6            : begin name := 'stm32_PID_STM32F070x6 devices'; stm32_PID_M0series := true; end;
+  stm32_PID_STM32F030x8            : begin name := 'stm32_PID_STM32F030x8 devices'; stm32_PID_M0series := true; end;
+  stm32_PID_STM32F070xB            : begin name := 'stm32_PID_STM32F070xB devices'; stm32_PID_M0series := true; end;
+  stm32_PID_STM32F030xC            : begin name := 'stm32_PID_STM32F030xC devices'; stm32_PID_M0series := true; end;
+  stm32_PID_STM32F303xBCor358      : name := 'stm32_PID_STM32F303xBCor358';
+  stm32_PID_STM32F303x68or328      : name := 'stm32_PID_STM32F303x68or328';
+  stm32_PID_STM32F303xDEor398      : name := 'stm32_PID_STM32F303xDEor398';
  else
   name := 'UNKNOW';
  end;
@@ -2343,6 +2386,20 @@ begin
  result:=false;
 end;
 
+{
+http://blog.gorski.pm/stm32-unique-id
+
+Device line	Starting address
+F0, F3	0x1FFFF7AC
+F1	0x1FFFF7E8
+F2, F4	0x1FFF7A10
+F7	0x1FF0F420
+L0	0x1FF80050
+L0, L1 Cat.1,Cat.2	0x1FF80050
+L1 Cat.3,Cat.4,Cat.5,Cat.6	0x1FF800D0
+
+}
+
 function tcomclient.boot_read_info:boolean;
 type
  pid_string = ^tid_string;
@@ -2359,6 +2416,31 @@ begin
  ZeroMemory(@STM32_info, sizeof(STM32_info));
  ZeroMemory(@block[0], sizeof(block));
 
+ if (stm32_PID =  stm32_PID_STM32F303xBCor358) or
+    (stm32_PID =  stm32_PID_STM32F303x68or328) or
+    (stm32_PID =  stm32_PID_STM32F303xDEor398)
+ then
+  begin
+   Log_add('STM32F3xx series!');
+   result := boot_read($1FFFF7A0,  @block[0], math.Min(sizeof(block), $30));
+   if not result then
+    begin
+     move(block[$2C], STM32_info.flash_size, sizeof(STM32_info.flash_size));
+     move(block[$0C], STM32_info.cpu_id_a, 12);
+    end;
+  end;
+
+ if stm32_PID_M0series then
+  begin
+   Log_add('stm32_PID_M0series!');
+   result := boot_read($1FFFF7A0,  @block[0], math.Min(sizeof(block), $30));
+   if not result then
+    begin
+     move(block[$2C], STM32_info.flash_size, sizeof(STM32_info.flash_size));
+     move(block[$0C], STM32_info.cpu_id_a, 12);
+    end;
+  end
+ else
  if stm32_PID = stm32_PID_ultralow_power_line then
   begin
    Log_add('boot_read_info (flash_size and id) ignored for stm32_PID_ultralow_xxx series');
@@ -3019,7 +3101,7 @@ begin
  if not open_simple_fast then DTR := dtr_clear;
  if not open_simple_fast then RTS := rts_clear;
 
- PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
+ //PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
 
  if not open_simple_fast then
   GetCommTimeouts(handle, CommTimeouts);
@@ -3037,7 +3119,7 @@ begin
    sleep(16);
    DTR := dtr_clear;
    RTS := rts_clear;
-   PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
+   //PurgeComm(handle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR);
    DTR := dtr_clear;
    RTS := rts_clear;
   end;

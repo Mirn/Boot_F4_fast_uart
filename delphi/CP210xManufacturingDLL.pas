@@ -366,7 +366,17 @@ function CP210x_CreateHexFile(
 	lpvFileName:pchar
 	):CP210x_STATUS; stdcall;
 
+function CP210x_GetConfig(
+        Handle:thandle;
+        lpbConfig:PBYTE;
+        bLength:integer
+        ):CP210x_STATUS; stdcall;
 
+function CP210x_SetConfig(
+        Handle:thandle;
+        lpbConfig:PBYTE;
+        bLength:integer
+        ):CP210x_STATUS; stdcall;
 
 
 implementation
@@ -410,5 +420,7 @@ function CP210x_GetDualPortConfig; external D2XXDLL name 'CP210x_GetDualPortConf
 function CP210x_GetLockValue; external D2XXDLL name 'CP210x_GetLockValue';
 function CP210x_Reset; external D2XXDLL name 'CP210x_Reset';
 function CP210x_CreateHexFile; external D2XXDLL name 'CP210x_CreateHexFile';
+function CP210x_GetConfig; external D2XXDLL name 'CP210x_GetConfig';
+function CP210x_SetConfig; external D2XXDLL name 'CP210x_SetConfig';
 
 end.
