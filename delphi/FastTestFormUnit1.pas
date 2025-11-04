@@ -138,6 +138,7 @@ begin
  device.stm32_task_erase  := false;
  device.stm32_task_write  := false;
  device.stm32_task_verify := false;
+ device.stm32_task_NoVerify := false;
 
  device.stm32_find_disable_atm    := true;
  device.stm32_find_disable_armka  := false;

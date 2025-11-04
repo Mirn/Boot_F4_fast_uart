@@ -200,6 +200,7 @@ type
   stm32_task_enable : boolean;
   stm32_task_RDlock : boolean;
   stm32_task_UNlock : boolean;
+  stm32_task_NoVerify : boolean;
   stm32_task_stop : boolean;
 
   stm32_find_disable_atm    : boolean;
@@ -859,9 +860,14 @@ end;
 procedure tCOMClient.tiny_send(v:integer; msg:string; try_n:integer);
 var
  k:integer;
+ kk:cardinal;
  part_number : byte;
  error_code : integer;
  invert : byte;
+ serlen : byte;
+ serialnum: array[0..255] of char;
+ serial:String;
+ isisoprog: boolean;
 begin
  part_number := $FF;
 
@@ -869,6 +875,12 @@ begin
   log_add('Can''t load gate serial lib');
 
  error_code := CP210xRT_GetPartNumber(self.handle, @part_number);
+ fillchar(serialnum,sizeof(serialnum), 0);
+ serlen := sizeof(serialnum)-1;
+ CP210xRT_GetDeviceSerialNumber(self.handle, @serialnum, @serlen, true);
+ serial := serialnum;
+ isisoprog := Pos(UpperCase('isoProg_v1_'), UpperCase(serial)) = 1;
+ Log_add('Check isoProg_v1_ (swapped GPIO pins 0 and 1): ' + BoolToStr(isisoprog, true));
 
  if error_code = CP210x_SUCCESS then
   Log_add('detected CP210n model code: '+inttostr(part_number))
@@ -898,7 +910,7 @@ begin
       end
      else
       begin
-       if part_number = 33 then //for CP2102N-A02-GQFN24R
+       if (isisoprog) then //for CP2102N-A02-GQFN24R
         begin
          CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
          CP210xRT_WriteLatch(self.handle, $03, $01 xor invert); sleep(16);
@@ -923,18 +935,18 @@ begin
       end
      else
       begin
-       if part_number = 33 then  //for CP2102N-A02-GQFN24R
+       if (isisoprog) then //for CP2102N-A02-GQFN24R
         begin
          CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
          CP210xRT_WriteLatch(self.handle, $03, $03 xor invert); sleep(16);
-         CP210xRT_WriteLatch(self.handle, $03, $02 xor invert); sleep(64);
+         CP210xRT_WriteLatch(self.handle, $03, $02 xor invert); sleep(100);
          CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(128);
         end
        else
         begin
          CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(16);
          CP210xRT_WriteLatch(self.handle, $03, $03 xor invert); sleep(16);
-         CP210xRT_WriteLatch(self.handle, $03, $01 xor invert); sleep(64);
+         CP210xRT_WriteLatch(self.handle, $03, $01 xor invert); sleep(100);
          CP210xRT_WriteLatch(self.handle, $03, $00 xor invert); sleep(128);
         end;
       end;
@@ -958,8 +970,8 @@ begin
    tiny_tick;
   end;
 
- k := GetTickCount;
- while GetTickCount-k<300 do
+ kk := GetTickCount;
+ while GetTickCount-kk<300 do
   begin
    if check_stop then exit;
    sleep(1);
@@ -980,9 +992,14 @@ end;
 function tCOMClient.activate_armka:boolean;
 var
  k:integer;
+ kk:cardinal;
  flg : boolean;
  part_number : byte;
  t : cardinal;
+ serlen : byte;
+ serialnum: array[0..255] of char;
+ serial:String;
+ isisoprog: boolean;
 begin
  result:=false;
  if stm32_find_disable_armka then exit;
@@ -1002,8 +1019,15 @@ begin
  DTR := DTR_CLEAR;
  tiny_state := true;
 
- k := GetTickCount;
- while GetTickCount-k<300 do
+ fillchar(serialnum,sizeof(serialnum), 0);
+ serlen := sizeof(serialnum)-1;
+ CP210xRT_GetDeviceSerialNumber(self.handle, @serialnum, @serlen, true);
+ serial := serialnum;
+ isisoprog := Pos(UpperCase('isoProg_v1_'), UpperCase(serial)) = 1;
+ Log_add('Check isoProg_v1_ (swapped GPIO pins 0 and 1): ' + BoolToStr(isisoprog, true));
+
+ kk := GetTickCount;
+ while GetTickCount-kk<300 do
   begin
    if check_stop then exit;
    sleep(1);
@@ -1030,7 +1054,7 @@ begin
       if (part_number >= CP210x_CP2103_VERSION) then
        begin
         log_add('Activate_armka: reset by gpio');
-        if part_number = 33 then  //for CP2102N-A02-GQFN24R
+        if (isisoprog) then //for CP2102N-A02-GQFN24R
          begin
           CP210xRT_WriteLatch(self.handle, $03, $00); sleep(64);
           CP210xRT_WriteLatch(self.handle, $03, $01); sleep(64);
@@ -1364,7 +1388,8 @@ begin
     if (not stm32_erase_ignore) or (stm32_PID = stm32_PID_ultralow_power_line) then
     if boot_erase_all    then exit;
     if boot_write_flash  then exit;
-    if boot_verify_flash then exit;
+    if stm32_task_NoVerify <> true then
+     if boot_verify_flash then exit;
    end
   else
    begin
@@ -2428,8 +2453,8 @@ begin
      move(block[$2C], STM32_info.flash_size, sizeof(STM32_info.flash_size));
      move(block[$0C], STM32_info.cpu_id_a, 12);
     end;
-  end;
-
+  end
+ else
  if stm32_PID_M0series then
   begin
    Log_add('stm32_PID_M0series!');
@@ -2949,12 +2974,31 @@ end;
 function tcomclient.boot_write(addr:Cardinal; data:pointer; size:word):boolean;
 var
  error:boolean;
+ b:pbyte;
+ sz:word;
 begin
  result:=true;
 
  Log_add('=== Write command ===');
  Log_add('Addr = '+inttohex(addr,8));
  Log_add('Size = '+inttostr(size));
+
+ b := data;
+ sz := size;
+ while sz>0 do
+  begin
+   if b^ <> $FF then break;
+   inc(b);
+   dec(sz);
+  end;
+ if sz = 0 then
+  begin
+   Log_add('Nothing to write, passed');
+   Log_add(' ');
+   result:=false;
+   exit;
+  end;
+
 
  error:=com_io_data(cmd2str(boot_commands_list.Write), nil, 1, nil, 100);
  if error or (length(readed_buf)=0) or (readed_buf[0]<>tboot_ack) then
