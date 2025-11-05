@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, ExtCtrls,
+  Dialogs, StdCtrls, ComCtrls, ExtCtrls, shellapi, 
   CRCunit,
   comclient,
   linkclient,
@@ -396,7 +396,29 @@ end;
 procedure TForm1.GoButtonClick(Sender: TObject);
 var
  start_time : cardinal;
+ reset_script: String;
+ //lst:TStringList;
 begin
+ reset_script := ExtractFilePath(Application.ExeName) + 'reset.bat';
+ if FileExists(reset_script) then
+  begin
+   ShellExecute(0, 'open', 'cmd.exe', PChar('/c start "" /wait "' + reset_script + '"'), nil, SW_SHOWNORMAL);
+  end;
+
+{ reset_script := ExtractFilePath(Application.ExeName) + 'reset.sh';
+ if FileExists(reset_script) then
+  begin
+   lst := TStringList.Create;
+   lst.LoadFromFile(reset_script);
+   if lst.Count >= 1 then
+    begin
+     ChDir(ExtractFilePath(Application.ExeName));
+     ShellExecute(0, 'open', 'start',   PChar('/wait /unix "' + './reset.sh' + '"'), nil, SW_HIDE)
+    end
+   else
+    ShowMessage('ERROR: reset.sh must contain one line');
+  end;}
+
  if (MemoCMD.Lines.Count <> 0) or
     (MemoDevice.Lines.Count <> 0) then
   begin

@@ -228,14 +228,12 @@ object Form1: TForm1
     Height = 17
     Anchors = [akLeft, akBottom]
     Caption = 'Reset'
-    Checked = True
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -16
     Font.Name = 'Courier New'
     Font.Style = [fsBold]
     ParentFont = False
-    State = cbChecked
     TabOrder = 7
   end
   object FirmwareEdit: TEdit
